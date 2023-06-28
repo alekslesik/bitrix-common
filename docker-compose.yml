@@ -11,7 +11,7 @@ services:
     # volumes:
       # - ./settings/mysql/my.cnf:/etc/my.cnf
       # - ./docker/logs/mysql/:/var/log/
-      # - ./docker/storage/mysql:/var/lib/mysql/${MYSQL_DATABASE}
+      # - ./storage/mysql:/var/lib/mysql
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -33,11 +33,11 @@ services:
     # depends_on: 
     #   - mysql
     volumes:
+      - ./www/:/var/www/html
       - ./settings/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
       - ./settings/php/:/usr/local/etc/php/conf.d/
-      - ./www/:/var/www/html:cached
     ports:
-      - "8080:80"
+      - "80:80"
     networks:
       - bitrix-net
 
@@ -49,7 +49,7 @@ services:
     container_name: bitrix-${PROJECT_NAME}-memcached
     restart: "always"
     volumes:
-      - ./docker/storage/memcached:/var/lib/memcached
+      - ./storage/memcached:/var/lib/memcached
     ports:
       - "11211"
     depends_on:
@@ -65,7 +65,7 @@ services:
     container_name: bitrix-${PROJECT_NAME}-redis
     restart: "always"
     volumes:
-      - ./docker/storage/redis:/data
+      - ./storage/redis:/data
     networks:
       - bitrix-net
 

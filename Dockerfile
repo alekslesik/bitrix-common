@@ -7,7 +7,8 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 RUN chmod +x /usr/local/bin/install-php-extensions && \
     install-php-extensions gd xdebug opcache pdo pdo_mysql mysqli && rm -f /var/lib/apt/lists/*
 
-COPY backup/* .
-COPY www/* .
+WORKDIR /var/www/html/
 
-RUN chmod 777 -R /var/www
+COPY www/* ./
+
+RUN chmod 777 -R ../html

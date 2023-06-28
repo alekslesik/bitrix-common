@@ -1,39 +1,41 @@
 <?php
 if (ini_get('short_open_tag') == 0 && mb_strtoupper(ini_get('short_open_tag')) != 'ON')
+{
 	die('Error: short_open_tag parameter must be turned on in php.ini');
-?><?
+}
+
 error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED);
 
 @ini_set('pcre.backtrack_limit', 1024*1024);
 
 define('IP_LIMIT_DEFAULT', '#IP'.'_LIMIT_PLACEHOLDER#');
-define('IP_LIMIT', '172.18.0.1');
-define('INIT_TIMESTAMP', '1684751183');
+define('IP_LIMIT', '#IP_LIMIT_PLACEHOLDER#');
+define('INIT_TIMESTAMP', '#INIT_TIMESTAMP#');
 
 if (getenv('BITRIX_VA_VER'))
+{
 	define('VMBITRIX', 'defined');
+}
 
-if (version_compare(phpversion(), '7.0', '<'))
-	die('Error: PHP version 7.0 or higher is required');
+if (version_compare(phpversion(), '7.4', '<'))
+{
+	die('Error: PHP version 7.4 or higher is required');
+}
 
-if(realpath(dirname(__FILE__)) != realpath($_SERVER['DOCUMENT_ROOT']))
+if (realpath(dirname(__FILE__)) != realpath($_SERVER['DOCUMENT_ROOT']))
+{
 	die('Error: this script must be started from Web Server\'s DOCUMENT ROOT');
+}
 
-if(isset($_SERVER["BX_PERSONAL_ROOT"]) && $_SERVER["BX_PERSONAL_ROOT"] <> "")
-	define("BX_PERSONAL_ROOT", $_SERVER["BX_PERSONAL_ROOT"]);
-else
-	define("BX_PERSONAL_ROOT", "/bitrix");
+if (file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.txt') && file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.php'))
+{
+	unlink($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.txt');
+}
 
-if(!defined("START_EXEC_TIME"))
-	define("START_EXEC_TIME", microtime(true));
-$START_TIME = START_EXEC_TIME;
-
+define("START_EXEC_TIME", microtime(true));
 define("STEP_TIME", defined('VMBITRIX') ? 30 : 15);
-# xdebug_start_trace();
 define('RESTORE_FILE_LIST', $_SERVER['DOCUMENT_ROOT'].'/bitrix/tmp/restore.file_list.php');
 define('RESTORE_FILE_DIR', $_SERVER['DOCUMENT_ROOT'].'/bitrix/tmp/restore.removed');
-if (file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.txt') && file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.php'))
-	unlink($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.txt');
 define('RESTORE_CLOUD_FILE_LIST', file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.txt') ? $_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.txt' : $_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud.php');
 define('RESTORE_CLOUD_FILE_LIST_404', $_SERVER['DOCUMENT_ROOT'].'/bitrix/restore_cloud_404.php');
 
@@ -46,17 +48,19 @@ if (function_exists('mb_internal_encoding'))
 	{
 		case 0:
 			$bUTF_serv = false;
-		break;
+			break;
 		case 2:
 			$bUTF_serv = mb_internal_encoding() == 'UTF-8';
-		break;
+			break;
 		default:
 			die('PHP parameter mbstring.func_overload='.ini_get("mbstring.func_overload").'. The only supported values are 0 or 2.');
 	}
 	mb_internal_encoding('ISO-8859-1');
 }
 else
+{
 	$bUTF_serv = false;
+}
 
 if (!function_exists('htmlspecialcharsbx'))
 {
@@ -69,26 +73,40 @@ if (!function_exists('htmlspecialcharsbx'))
 
 define('DEBUG', file_exists(dirname(__FILE__).'/restore.debug'));
 
-#@set_time_limit(0);
 ob_start();
 
-$lang = 'en';
-if (@preg_match('#ru#i',$_SERVER['HTTP_ACCEPT_LANGUAGE']))
-	$lang = 'ru';
-elseif (@preg_match('#de#i',$_SERVER['HTTP_ACCEPT_LANGUAGE']))
-	$lang = 'de';
 if (isset($_REQUEST['lang']))
+{
 	$lang = $_REQUEST['lang'];
-if (!in_array($lang, array('ru','en','de')))
+
+	if (!in_array($lang, ['ru','en','de']))
+	{
+		$lang = 'en';
+	}
+}
+elseif (preg_match('#ru#i', $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''))
+{
+	$lang = 'ru';
+}
+elseif (preg_match('#de#i', $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''))
+{
+	$lang = 'de';
+}
+else
+{
 	$lang = 'en';
+}
+
 define("LANG", $lang);
+
 if (!headers_sent())
+{
 	header("Content-type:text/html; charset=utf-8");
+}
 
 $dbconn = $_SERVER['DOCUMENT_ROOT']."/bitrix/php_interface/dbconn.php";
-$main_version = $_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/classes/general/version.php";
-
 $arc_name = $_REQUEST["arc_name"] ?? '';
+
 if (LANG == 'ru')
 {
 	$MESS = array(
@@ -168,7 +186,7 @@ if (LANG == 'ru')
 		"WARN_CLEARED" => "При распаковке ядра были обнаружены файлы, которых не было в архиве. Эти файлы перенесены в /bitrix/tmp/restore.removed",
 		"WARN_SITES" => "Вы распаковали многосайтовый архив, файлы дополнительных сайтов следует скопировать вручную из папки /bitrix/backup/sites",
 		"WARNING" => "Внимание!",
-		"DBCONN_WARN" => "Данные подключения взяты из dbconn.php. Если их не изменить, будет переписана база данных текущего сайта.",
+		"DBCONN_WARN" => "Данные подключения взяты из .settings.php. Если их не изменить, будет переписана база данных текущего сайта.",
 		"HTACCESS_RENAMED_WARN" => "Файл .htaccess из архива был сохранен в корне сайта под именем .htaccess.restore, т.к. он может содержать директивы, недопустимые на данном сервере.",
 		"HTACCESS_WARN" => "Файл .htaccess из архива был сохранен в корне сайта под именем .htaccess.restore, т.к. он может содержать директивы, недопустимые на данном сервере. В корне сайта создан .htaccess по умолчанию. Измените его вручную через FTP.",
 		"HTACCESS_ERR_WARN" => "Файл .htaccess из архива был сохранен в корне сайта под именем .htaccess.restore, т.к. он может содержать директивы, недопустимые на данном сервере. <br> Не удалось создать корне сайта .htaccess по умолчанию. Переименуйте файл .htaccess.restore в .htaccess через FTP.",
@@ -276,7 +294,7 @@ elseif (LANG == 'de')
 		"WARN_CLEARED" => "Einige Dateien wurden in /bitrix gefunden, sie sind in der Backup nicht enthalten. Sie wurden nach /bitrix/tmp/restore.removed verschoben",
 		"WARN_SITES" => "Sie haben das Multisite-Archiv entpackt, kopieren Sie bitte die Dateien zusätzlicher Websites von /bitrix/backup/sites in einen entsprechenden Ort",
 		"WARNING" => "Warnung!",
-		"DBCONN_WARN" => "Die Verbindungseinstellungen werden von dbconn.php gelesen. Wenn Sie sie nicht ändern, wird aktuelle Datenbank überschrieben.",
+		"DBCONN_WARN" => "Die Verbindungseinstellungen werden von .settings.php gelesen. Wenn Sie sie nicht ändern, wird aktuelle Datenbank überschrieben.",
 		"HTACCESS_RENAMED_WARN" => "Die Datei .htaccess wurde unter .htaccess.restore gespeichert, weil sie Anweisungen enthalten kann, die auf diesem Server nicht erlaubt sind.",
 		"HTACCESS_WARN" => "Die Datei .htaccess wurde unter .htaccess.restore gespeichert, weil sie die Anweisungen enthalten kann, die auf diesem Server nicht erlaubt sind. Standarddatei .htaccess wurde im Dokumenten-Root erstellt. Sie sollten sie manuell via FTP aktualisieren.",
 		"HTACCESS_ERR_WARN" => "Die Datei .htaccess wurde unter .htaccess.restore gespeichert, weil sie Anweisungen enthalten kann, die auf diesem Server nicht erlaubt sind. Es gab einen Fehler beim Erstellen der Standarddatei .htaccess. Sie sollten .htaccess.restore in .htaccess via FTP umbenennen.",
@@ -383,7 +401,7 @@ else
 		"WARN_CLEARED" => "Some files were found in /bitrix which don't present in the backup. They were moved to /bitrix/tmp/restore.removed",
 		"WARN_SITES" => "You have extracted the multisite archive, please copy files of additional sites from /bitrix/backup/sites to an appropriate place",
 		"WARNING" => "Warning!",
-		"DBCONN_WARN" => "The connection settings are read from dbconn.php. If you don't change them, current database will be overwriten.",
+		"DBCONN_WARN" => "The connection settings are read from .settings.php. If you don't change them, current database will be overwriten.",
 		"HTACCESS_RENAMED_WARN" => "The file .htaccess was saved as .htaccess.restore, because it may contain directives which are not permitted on this server.",
 		"HTACCESS_WARN" => "The file .htaccess was saved as .htaccess.restore, because it may contain directives which are not permitted on this server. Default .htaccess file has been created at the document root. Please modify it manually using FTP.",
 		"HTACCESS_ERR_WARN" => "The file .htaccess was saved as .htaccess.restore, because it may contain directives which are not permitted on this server. There was an error in creating default .htaccess file. Please rename .htaccess.restore to .htaccess using FTP.",
@@ -419,13 +437,12 @@ $bCloudDownloadStep = ($_REQUEST['cloud_download'] ?? '');
 
 $Step = intval($_REQUEST["Step"] ?? 0);
 
-
-if(LANG == 'ru')
+if (LANG == 'ru')
 {
 	$bx_host = 'www.1c-bitrix.ru';
 	$util_host = 'util.1c-bitrix.ru';
 }
-elseif(LANG == 'de')
+elseif (LANG == 'de')
 {
 	$bx_host = 'www.bitrix.de';
 	$util_host = 'util.bitrixsoft.com';
@@ -447,7 +464,7 @@ if (!DEBUG && !$Step && $_SERVER['REQUEST_METHOD'] == 'GET')
 	// Check for updates
 	$res = fsockopen('ssl://'.$bx_host, 443, $errno, $errstr, 3);
 
-	if($res)
+	if ($res)
 	{
 		$strRequest = "HEAD ".$bx_url." HTTP/1.1\r\n";
 		$strRequest.= "Host: ".$bx_host."\r\n";
@@ -464,17 +481,21 @@ if (!DEBUG && !$Step && $_SERVER['REQUEST_METHOD'] == 'GET')
 					$tmp_name = $this_script_name.'.tmp';
 					if (LoadFile('https://'.$bx_host.$bx_url, $tmp_name))
 					{
-						if (rename($_SERVER['DOCUMENT_ROOT'].'/'.$tmp_name,__FILE__))
+						if (rename($_SERVER['DOCUMENT_ROOT'].'/'.$tmp_name, __FILE__))
 						{
 							bx_accelerator_reset();
 							echo '<script>document.location="?lang='.LANG.'";</script>'.getMsg('UPDATE_SUCCESS');
 							die();
 						}
 						else
+						{
 							$strErrMsg = getMsg("ERROR_CANT_WRITE", ["#FILE#" => $this_script_name, '#SPACE#' => freeSpace()]);
+						}
 					}
 					else
+					{
 						$strErrMsg = getMsg('LOADER_NEW_VERSION');
+					}
 				}
 				break;
 			}
@@ -482,8 +503,6 @@ if (!DEBUG && !$Step && $_SERVER['REQUEST_METHOD'] == 'GET')
 		fclose($res);
 	}
 }
-
-@ini_set('pcre.backtrack_limit', 1024*1024);
 
 if (!DEBUG)
 {
@@ -500,9 +519,13 @@ if (!DEBUG)
 		die();
 	}
 	elseif ($_SERVER['REMOTE_ADDR'] != IP_LIMIT)
+	{
 		$strErrMsg = getMsg('ERROR_IP_CHANGED');
+	}
 	elseif (time() - INIT_TIMESTAMP > 86400*7)
+	{
 		$strErrMsg = getMsg('ERROR_INIT_TIMESTAMP');
+	}
 
 	if ($strErrMsg)
 	{
@@ -511,63 +534,80 @@ if (!DEBUG)
 	}
 }
 
-if (isset($_REQUEST['LoadFileList']) && $_REQUEST['LoadFileList'])
+if (!empty($_REQUEST['LoadFileList']))
 {
 	$strLog = '';
 	if (LoadFile("https://".$util_host."/backup.php?license=".md5(trim($_REQUEST['license_key']))."&lang=".LANG."&action=get_info", $file = $_SERVER['DOCUMENT_ROOT'].'/file_list.xml') && ($str = file_get_contents($file)))
 	{
 		if (preg_match_all('/<file name="([^"]+)" size="([^"]+)".*?\\/>/', $str, $regs))
 		{
-			$arFiles = array();
-			$arParts = array();
-			foreach($regs[0] as $i => $wholeMatch)
+			$arFiles = [];
+			$arParts = [];
+			foreach ($regs[0] as $i => $wholeMatch)
 			{
 				$name = CTar::getFirstName($regs[1][$i]);
-				$arFiles[$name] += $regs[2][$i];
+				if (!isset($arFiles[$name]))
+				{
+					$arFiles[$name] = 0;
+					$arParts[$name] = 0;
+				}
+				$arFiles[$name] += (int)$regs[2][$i];
 				$arParts[$name]++;
 			}
 			krsort($arFiles);
 
 			echo getMsg('SELECT_ARC').':&nbsp;<select name="bitrixcloud_backup">';
-			foreach($arFiles as $name => $size)
+			foreach ($arFiles as $name => $size)
+			{
 				echo '<option value="'.htmlspecialcharsbx($name).'" '.(($_REQUEST['bitrixcloud_backup'] ?? '') == $name ? 'selected' : '').'>'.htmlspecialcharsbx($name).' ('.floor($size/1024/1024), ' Mb'.($arParts[$name] > 1 ? ', '.getMsg('CNT_PARTS').': '.$arParts[$name] : '').')</option>';
+			}
 			echo '</select><br>';
 			echo getMsg('ENC_KEY').'&nbsp;<input type="password" size=30 name="EncryptKey" autocomplete="off">';
 		}
 		else
 		{
 			if (mb_strpos($str,'<files>') !== false) // valid answer
+			{
 				$strErrMsg = getMsg('ARC_LIST_EMPTY');
+			}
 			elseif (preg_match('#error#i',$str))
 			{
 				$code = strip_tags($str);
-				if ($code == 'LICENSE_NOT_FOUND')
-					$strErrMsg = getMsg('LICENSE_NOT_FOUND');
-				else
-					$strErrMsg = $code;
+				$strErrMsg = ($code == 'LICENSE_NOT_FOUND' ? getMsg('LICENSE_NOT_FOUND') : $code);
 			}
 			else
+			{
 				$strErrMsg = getMsg('ERR_UNKNOWN');
+			}
 			echo '<div style="color:red">'.getMsg('ERR_MSG').' '.$strErrMsg.'</div>';
 		}
 		bx_unlink($file);
 	}
 	else
+	{
 		echo '<div style="color:red">'.getMsg('ERR_LOAD_FILE_LIST').'</div><div style="text-align:left;color:#CCC">'.nl2br($strLog).'</div>';
+	}
 	die();
 }
-elseif ($Step == 2 && !$bSelectDumpStep)
+
+if ($Step == 2 && !$bSelectDumpStep)
 {
 	if (isset($_REQUEST['arHeaders']) && is_array($_REQUEST['arHeaders']))
+	{
 		$arHeaders = $_REQUEST['arHeaders'];
+	}
 	else
-		$arHeaders = array();
+	{
+		$arHeaders = [];
+	}
 
-	$source = $_REQUEST['source'];
-	if ($source == 'bitrixcloud' && !$_REQUEST['arc_down_url'])
+	$source = $_REQUEST['source'] ?? '';
+	if ($source == 'bitrixcloud' && empty($_REQUEST['arc_down_url']))
 	{
 		$strLog = '';
-		if (LoadFile('https://'.$util_host.'/backup.php?license='.md5(trim($_REQUEST['license_key'])).'&lang='.LANG.'&action=read_file&file_name='.urlencode($_REQUEST['bitrixcloud_backup']).'&check_word='.CTar::getCheckword($_REQUEST['EncryptKey']), $file = $_SERVER['DOCUMENT_ROOT'].'/file_info.xml') && ($str = file_get_contents($file)))
+		$downloadUrl = 'https://'.$util_host.'/backup.php?license='.md5(trim($_REQUEST['license_key'])).'&lang='.LANG.'&action=read_file&file_name='.urlencode($_REQUEST['bitrixcloud_backup']).'&check_word='.CTar::getCheckword($_REQUEST['EncryptKey']);
+		$file = $_SERVER['DOCUMENT_ROOT'].'/file_info.xml';
+		if (LoadFile($downloadUrl, $file) && ($str = file_get_contents($file)))
 		{
 			bx_unlink($file);
 
@@ -576,23 +616,31 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 
 			if (preg_match_all('/<header name="([^"]+)" value="([^"]+)".*?\\/>/', $str, $regs))
 			{
-				foreach($regs[0] as $i => $wholeMatch)
+				foreach ($regs[0] as $i => $wholeMatch)
+				{
 					$arHeaders[$regs[1][$i]] = $regs[2][$i];
+				}
 			}
 
 			if ($host && $path)
 			{
-				$_REQUEST['arc_down_url'] = $host.$path;
+				$_REQUEST['arc_down_url'] = $host . $path;
 			}
 			elseif (mb_strpos($str,'WRONG_FILE_NAME_OR_CHECKWORD') !== false)
+			{
 				$strErrMsg = '<div style="color:red">'.getMsg('WRONG_PASS').'</div>';
+			}
 			else
+			{
 				$strErrMsg = '<div style="color:red">'.getMsg('ERR_LOAD_FILE_LIST').'</div>';
+			}
 		}
 		else
+		{
 			$strErrMsg = '<div style="color:red">'.getMsg('ERR_LOAD_FILE_LIST').'</div><div style="text-align:left;color:#CCC">'.nl2br($strLog).'</div>';
+		}
 
-		if (!$_REQUEST['try_next'] && $strErrMsg)
+		if (empty($_REQUEST['try_next']) && $strErrMsg)
 		{
 			$text = $strErrMsg.
 			getMsg('ENC_KEY').'<input type="password" size=30 name="EncryptKey" autocomplete="off" value="">'.
@@ -600,22 +648,25 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 			'<input type="hidden" name="source" value="bitrixcloud">'.
 			'<input type="hidden" name="bitrixcloud_backup" value="'.htmlspecialcharsbx($_REQUEST['bitrixcloud_backup']).'">'.
 			'<input type="hidden" name="Step" value="2">';
-			$bottom .= '
+			$bottom = '
 			<a href="/restore.php?Step=1&lang='.LANG.'">'.getMsg('BUT_TEXT_BACK').'</a>
 			<input type="button" id="start_button" value="'.getMsg("BUT_TEXT1").'" onClick="reloadPage(2)">';
-			showMsg(getMsg('TITLE1'),$text,$bottom);
+			showMsg(getMsg('TITLE1'), $text, $bottom);
 			die();
 		}
 	}
 
 	if ($source == 'download' || $source == 'bitrixcloud')
 	{
-		$strUrl = $_REQUEST['arc_down_url'];
+		$strUrl = $_REQUEST['arc_down_url'] ?? '';
 		$res = false;
 		if ($strUrl)
 		{
 			if (!preg_match('#https?://#',$strUrl))
+			{
 				$strUrl = 'http://'.$strUrl;
+			}
+
 			$arc_name = trim(basename($strUrl));
 
 			if ($arc_name == CTar::getFirstName($arc_name))
@@ -624,7 +675,7 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 				$tar = new CTar();
 				$n = CTar::getLastNum($_SERVER['DOCUMENT_ROOT'].'/'.$arc_name);
 				$arc_name1 = $arc_name;
-				while(file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$arc_name1))
+				while (file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$arc_name1))
 				{
 					if ($n && $arc_name1 == $arc_name.'.'.$n)
 					{
@@ -644,7 +695,7 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 			$strLog = '';
 			$status = '';
 
-			if ($_REQUEST['continue'])
+			if (!empty($_REQUEST['continue']))
 			{
 				$res = LoadFile($strUrl, $_SERVER['DOCUMENT_ROOT'].'/'.$arc_name, $arHeaders);
 				if (file_exists($file = $_SERVER['DOCUMENT_ROOT'].'/'.$arc_name))
@@ -658,7 +709,7 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 						if ($id != chr(31).chr(139)) // not gzip
 						{
 							$s = filesize($_SERVER['DOCUMENT_ROOT'].'/'.$arc_name);
-							if ($s == 0 || $s%512 > 0) // not tar
+							if ($s == 0 || $s % 512 > 0) // not tar
 							{
 								bx_unlink($_SERVER['DOCUMENT_ROOT'].'/'.$arc_name);
 								$res = false;
@@ -679,8 +730,8 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 			$text = getMsg('ARC_DOWN_PROCESS').' <b>'.htmlspecialcharsbx($arc_name).'</b>' . $status .
 			'<input type=hidden name=Step value=2>'.
 			'<input type=hidden name=continue value=Y>'.
-			'<input type=hidden name="EncryptKey" value="'.htmlspecialcharsbx($_REQUEST['EncryptKey']).'">'.
-			'<input type=hidden name="license_key" value="'.htmlspecialcharsbx($_REQUEST['license_key']).'">';
+			'<input type=hidden name="EncryptKey" value="'.htmlspecialcharsbx($_REQUEST['EncryptKey'] ?? '').'">'.
+			'<input type=hidden name="license_key" value="'.htmlspecialcharsbx($_REQUEST['license_key'] ?? '').'">';
 
 			if ($res == 2)
 			{
@@ -692,7 +743,7 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 			{
 				$tar = new CTar();
 				$text .= '<input type=hidden name=try_next value=Y>';
-				if (count($arHeaders)) // bitrixcloud
+				if (!empty($arHeaders)) // bitrixcloud
 				{
 					$text .= '<input type=hidden name=source value=bitrixcloud>';
 					$text .= '<input type=hidden name="bitrixcloud_backup" value="'.htmlspecialcharsbx($tar->getNextName($_REQUEST['bitrixcloud_backup'])).'">';
@@ -703,34 +754,41 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 					$text .= '<input type=hidden name=arc_down_url value="'.htmlspecialcharsbx($tar->getNextName($strUrl)).'">';
 				}
 			}
-			if (count($arHeaders))
+			if (!empty($arHeaders))
 			{
-				foreach($arHeaders as $k=>$v)
+				foreach ($arHeaders as $k => $v)
+				{
 					$text .= '<input type=hidden name="arHeaders['.htmlspecialcharsbx($k).']" value="'.htmlspecialcharsbx($v).'">';
+				}
 			}
 		}
-		elseif ($_REQUEST['try_next'])
+		elseif (!empty($_REQUEST['try_next']))
 		{
 			$text = getMsg('ARC_DOWN_OK').
 			'<input type=hidden name=Step value=2>'.
-			'<input type=hidden name="EncryptKey" value="'.htmlspecialcharsbx($_REQUEST['EncryptKey']).'">';
+			'<input type=hidden name=source value="">'.
+			'<input type=hidden name="EncryptKey" value="'.htmlspecialcharsbx($_REQUEST['EncryptKey'] ?? '').'">';
 
-			if ($_REQUEST['bitrixcloud_backup'])
+			if (!empty($_REQUEST['bitrixcloud_backup']))
+			{
 				$text .= '<input type=hidden name=arc_name value="'.htmlspecialcharsbx(CTar::getFirstName($_REQUEST['bitrixcloud_backup'])).'">';
+			}
 			else
+			{
 				$text .= '<input type=hidden name=arc_name value="'.htmlspecialcharsbx(CTar::getFirstName($arc_name)).'">';
+			}
 		}
 		else
 		{
-			if ($_REQUEST['bitrixcloud_backup'] && $replycode == 403 && count($arHeaders) && (!$_REQUEST['timestamp'] || time() - $_REQUEST['timestamp'] > 10)) // Retry for bitrixcloud
+			if (!empty($_REQUEST['bitrixcloud_backup']) && isset($replycode) && $replycode == 403 && !empty($arHeaders) && (empty($_REQUEST['timestamp']) || time() - $_REQUEST['timestamp'] > 10)) // Retry for bitrixcloud
 			{
 				$status = '<div>'.getMsg('BITRIXCLOUD_KEYS').'</div>';
 				$text = getMsg('ARC_DOWN_PROCESS').' <b>'.htmlspecialcharsbx($arc_name).'</b>' . $status .
 					'<input type=hidden name=Step value=2>'.
 					'<input type=hidden name=timestamp value='.time().'>'.
 					'<input type=hidden name=continue value=Y>'.
-					'<input type=hidden name="EncryptKey" value="'.htmlspecialcharsbx($_REQUEST['EncryptKey']).'">'.
-					'<input type=hidden name="license_key" value="'.htmlspecialcharsbx($_REQUEST['license_key']).'">';
+					'<input type=hidden name="EncryptKey" value="'.htmlspecialcharsbx($_REQUEST['EncryptKey'] ?? '').'">'.
+					'<input type=hidden name="license_key" value="'.htmlspecialcharsbx($_REQUEST['license_key'] ?? '').'">';
 				$text .= '<input type=hidden name=source value=bitrixcloud>';
 				$text .= '<input type=hidden name="bitrixcloud_backup" value="'.htmlspecialcharsbx($_REQUEST['bitrixcloud_backup']).'">';
 			}
@@ -746,11 +804,11 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 			}
 		}
 		$bottom = '<a href="/restore.php?Step=1&lang='.LANG.'">'.getMsg('BUT_TEXT_BACK').'</a>';
-		showMsg(getMsg('LOADER_SUBTITLE1'),$text,$bottom);
+		showMsg(getMsg('LOADER_SUBTITLE1'), $text, $bottom);
 		?><script>reloadPage(2, 1);</script><?
 		die();
 	}
-	elseif($source == 'upload')
+	elseif ($source == 'upload')
 	{
 		if (!count($_FILES['archive']['tmp_name']))
 		{
@@ -763,10 +821,12 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 			die();
 		}
 
-		foreach($_FILES['archive']['tmp_name'] as $k => $v)
+		foreach ($_FILES['archive']['tmp_name'] as $k => $v)
 		{
 			if (!$v)
+			{
 				continue;
+			}
 			$arc_name = $_FILES['archive']['name'][$k];
 			if (!@move_uploaded_file($v, $_SERVER['DOCUMENT_ROOT'].'/'.$arc_name))
 			{
@@ -782,21 +842,23 @@ elseif ($Step == 2 && !$bSelectDumpStep)
 		$text =
 		'<input type=hidden name=Step value=2>'.
 		'<input type=hidden name=arc_name value="'.htmlspecialcharsbx(CTar::getFirstName($arc_name)).'">';
-		showMsg(getMsg('LOADER_SUBTITLE1'),$text);
+		showMsg(getMsg('LOADER_SUBTITLE1'), $text);
 		?><script>reloadPage(2, 1);</script><?
 		die();
 	}
 }
-elseif($Step == 3)
+elseif ($Step == 3)
 {
-	$d_pos = (double) $_REQUEST["d_pos"];
+	$d_pos = (double)($_REQUEST["d_pos"] ?? 0);
 	if ($d_pos < 0)
+	{
 		$d_pos = 0;
+	}
 
 	$oDB = new CDBRestore($_REQUEST["DBHost"], $_REQUEST["DBName"], $_REQUEST["DBLogin"], $_REQUEST["DBPassword"], $_REQUEST["dump_name"], $d_pos);
-	$oDB->LocalCloud = $_REQUEST['LocalCloud'];
+	$oDB->LocalCloud = $_REQUEST['LocalCloud'] ?? '' ;
 
-	if(!$oDB->Connect())
+	if (!$oDB->Connect())
 	{
 		$strErrMsg = $oDB->getError();
 		$Step = 2;
@@ -804,11 +866,7 @@ elseif($Step == 3)
 	}
 }
 
-
-
-
-##################################### GUI #################################
-if(!$Step)
+if (!$Step)
 {
 	$ar = array(
 		'TITLE' => getMsg("TITLE0"),
@@ -821,12 +879,12 @@ if(!$Step)
 	);
 	html($ar);
 }
-elseif($Step == 1)
+elseif ($Step == 1)
 {
 	$arc_down_url = $_REQUEST['arc_down_url'] ?? '';
 	$local_arc_name = htmlspecialcharsbx(ltrim(($_REQUEST['local_arc_name'] ?? ''),'/'));
 	$license_key = '';
-	if (isset($_REQUEST['bitrixcloud_backup']) && $_REQUEST['bitrixcloud_backup'])
+	if (!empty($_REQUEST['bitrixcloud_backup']))
 	{
 		@include($_SERVER['DOCUMENT_ROOT'].'/bitrix/license_key.php');
 		$license_key = $LICENSE_KEY;
@@ -843,14 +901,14 @@ elseif($Step == 1)
 				($strErrMsg ? '<div style="color:red">'.$strErrMsg.'</div>' : '').
 				'<input type="hidden" name="Step" value="2">'.
 				'<div class=t_div>
-					<label><input type=radio name=x_source onclick="div_show(0)" '.(isset($_REQUEST['bitrixcloud_backup']) && $_REQUEST['bitrixcloud_backup'] ? 'checked' : '').'>'.getMsg("ARC_DOWN_BITRIXCLOUD").'</label>
+					<label><input type=radio name=x_source onclick="div_show(0)" '.(!empty($_REQUEST['bitrixcloud_backup']) ? 'checked' : '').'>'.getMsg("ARC_DOWN_BITRIXCLOUD").'</label>
 					<div id=div0 class="div-tool" style="display:none">
 						<nobr>'.getMsg("LICENSE_KEY").'</nobr> <input name=license_key type="text" id=license_key size=30 value="'.htmlspecialcharsbx($license_key).'"> <input type="button" value=" OK " onclick="LoadFileList()"><br>
 						<div id=file_list></div>
 					</div>
 				</div>
 				<div class=t_div>
-					<label><input type=radio name=x_source onclick="div_show(1)" '.(isset($_REQUEST['arc_down_url']) && $_REQUEST['arc_down_url'] ? 'checked' : '').'>'.getMsg("ARC_DOWN").'</label>
+					<label><input type=radio name=x_source onclick="div_show(1)" '.(!empty($_REQUEST['arc_down_url']) ? 'checked' : '').'>'.getMsg("ARC_DOWN").'</label>
 					<div id=div1 class="div-tool" style="display:none"><nobr>'.getMsg("ARC_DOWN_URL").'</nobr> <input name=arc_down_url type="text" size=40 value="'.htmlspecialcharsbx($arc_down_url).'"></div>
 				</div>
 				<div class=t_div>
@@ -879,9 +937,9 @@ elseif($Step == 1)
 	);
 	html($ar);
 }
-elseif($Step == 2)
+elseif ($Step == 2)
 {
-	if(!$bSelectDumpStep && !$bClearUnusedStep && !$bCloudDownloadStep)
+	if (!$bSelectDumpStep && !$bClearUnusedStep && !$bCloudDownloadStep)
 	{
 		$tar = new CTarRestore;
 		$tar->path = $_SERVER['DOCUMENT_ROOT'];
@@ -895,25 +953,29 @@ elseif($Step == 2)
 			$DataSize = intval($_REQUEST['DataSize'] ?? 0);
 			$skip = '';
 
-			if(!$DataSize) // first step
+			if (!$DataSize) // first step
 			{
 				bx_unlink(RESTORE_FILE_LIST);
 				DeleteDirRec(RESTORE_FILE_DIR);
 
 				$Block = $tar->Block;
 				if (!$ArchiveSize = $tar->getDataSize($file))
+				{
 					$ArchiveSize = filesize($file) * 2; // for standard gzip files
+				}
 				$DataSize = $ArchiveSize;
 
-				while(file_exists($file1 = $tar->getNextName($file1)))
+				while (file_exists($file1 = $tar->getNextName($file1)))
+				{
 					$DataSize += $ArchiveSize;
+				}
 
 				$r = true;
 				SetCurrentProgress(0);
 
 				if ($n = CTar::getLastNum($file))
 				{
-					for($i=1;$i<=$n;$i++)
+					for ($i=1;$i<=$n;$i++)
 					{
 						if (!file_exists($file.'.'.$i))
 						{
@@ -933,19 +995,21 @@ elseif($Step == 2)
 				{
 					if ($_REQUEST['skip'])
 					{
-						while($tar->readHeader() === false);
+						while ($tar->readHeader() === false);
 						$tar->SkipFile();
 					}
-					while(($r = $tar->extractFile()) && haveTime());
+					while (($r = $tar->extractFile()) && haveTime());
 				}
 				$strErrMsg = implode('<br>',$tar->err);
 			}
 
 			if ($r === 0) // Finish
+			{
 				$bClearUnusedStep = true;
+			}
 			else
 			{
-				SetCurrentProgress(($tar->BlockHeader + $tar->ReadBlockCurrent) * 512,$DataSize, $red=false);
+				SetCurrentProgress(($tar->BlockHeader + $tar->ReadBlockCurrent) * 512, $DataSize);
 
 				$hidden = '<input type="hidden" name="Block" value="'.$tar->BlockHeader.'">'.
 				'<input type="hidden" name="ReadBlockCurrent" value="'.$tar->ReadBlockCurrent.'">'.
@@ -953,17 +1017,16 @@ elseif($Step == 2)
 				'<input type="hidden" name="DataSize" value="'.$DataSize.'">'.
 				'<input type="hidden" name="arc_name" value="'.htmlspecialcharsbx($arc_name).'">';
 
-				if($r === false) // Error
+				if ($r === false) // Error
 				{
 					showMsg(getMsg("ERR_EXTRACT"), $status.$hidden.'<div style="color:red">'.$strErrMsg.'</div>', $bottom.$skip);
-					die();
 				}
 				else
 				{
-					showMsg(getMsg('TITLE_PROCESS1'),$status.$hidden,$bottom);
+					showMsg(getMsg('TITLE_PROCESS1'), $status.$hidden, $bottom);
 					?><script>reloadPage(2, 1);</script><?
-					die();
 				}
+				die();
 			}
 			$tar->close();
 		}
@@ -975,12 +1038,12 @@ elseif($Step == 2)
 			'<input type="hidden" name="arc_name" value="'.htmlspecialcharsbx($arc_name).'">'.
 			'<input type="hidden" name="Step" value="2">';
 			$bottom .= ' <input type="button" id="start_button" value="'.getMsg("BUT_TEXT1").'" onClick="reloadPage(2)">';
-			showMsg(getMsg('TITLE_PROCESS1'),$text,$bottom);
+			showMsg(getMsg('TITLE_PROCESS1'), $text, $bottom);
 			die();
 		}
 		else
 		{
-			showMsg(getMsg("ERR_EXTRACT"), getMsg('TAR_ERR_FILE_OPEN').' '.implode('<br>',$tar->err),$bottom);
+			showMsg(getMsg("ERR_EXTRACT"), getMsg('TAR_ERR_FILE_OPEN').' '.implode('<br>',$tar->err), $bottom);
 			die();
 		}
 	}
@@ -992,17 +1055,23 @@ elseif($Step == 2)
 			$modules = $_SERVER['DOCUMENT_ROOT'].'/bitrix/modules';
 			$components = $_SERVER['DOCUMENT_ROOT'].'/bitrix/components/bitrix';
 			fgets($f); // "die" line
-			$a = array();
-			while(false !== $l = fgets($f))
+			$a = [];
+			while (($l = fgets($f)) !== false)
+			{
 				$a[trim($l)] = 1;
+			}
 			fclose($f);
 
 			$ds = new CDirRealScan;
 			$ds->startPath = $_REQUEST['nextPath'] ?? '';
 			if (mb_strpos($ds->startPath, $components) === 0)
+			{
 				$init_path = $components;
+			}
 			else
+			{
 				$init_path = $modules;
+			}
 			$res = $ds->Scan($init_path);
 
 			if ($res === true && $init_path == $modules)
@@ -1017,7 +1086,7 @@ elseif($Step == 2)
 				$hidden = '<input type="hidden" name="nextPath" value="'.$ds->nextPath.'">'.
 					'<input type="hidden" name="clear" value="1">'.GetHidden(array('dump_name', 'arc_name'));
 				$bottom = '<a href="javascript:reloadPage(1)">'.getMsg('BUT_TEXT_BACK').'</a> ';
-				showMsg(getMsg('TITLE_PROCESS1'),$status.$hidden,$bottom);
+				showMsg(getMsg('TITLE_PROCESS1'), $status.$hidden, $bottom);
 				?><script>reloadPage(2, 1);</script><?
 				die();
 			}
@@ -1025,9 +1094,13 @@ elseif($Step == 2)
 		}
 
 		if (file_exists(RESTORE_FILE_DIR))
+		{
 			$strWarning.= '<li>'.getMsg('WARN_CLEARED');
+		}
 		if (file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/backup/sites'))
+		{
 			$strWarning.= '<li>'.getMsg('WARN_SITES');
+		}
 		$bSelectDumpStep = true;
 	}
 
@@ -1037,20 +1110,19 @@ elseif($Step == 2)
 		$hidden = '<input type="hidden" name="source" value="dump">'.GetHidden(array('dump_name', 'arc_name'));
 		$bottom = '<a href="javascript:reloadPage(1)">'.getMsg('BUT_TEXT_BACK').'</a> '.
 			'<input type="button" value="'.getMsg("BUT_TEXT1").'" onClick="reloadPage(2)">';
-		showMsg(getMsg('TITLE_PROCESS1'),$status.$hidden,$bottom);
+		showMsg(getMsg('TITLE_PROCESS1'), $status.$hidden, $bottom);
 		die();
 	}
 
 	if (file_exists(RESTORE_CLOUD_FILE_LIST))
 	{
 		$skip = $_REQUEST['skip'];
-		if ($skip)
-		{
-		}
-		elseif ($rsFile = fopen(RESTORE_CLOUD_FILE_LIST, 'rb'))
+		if (!$skip && ($rsFile = fopen(RESTORE_CLOUD_FILE_LIST, 'rb')))
 		{
 			if ($start_position = intval($_REQUEST['position']))
+			{
 				fseek($rsFile, $start_position);
+			}
 
 			if (is_array($_REQUEST['mirror_list']) && time() - intval($_REQUEST['init_time']) < 600) // раз в 10 минут снова измеряем зеркала
 			{
@@ -1078,7 +1150,7 @@ elseif($Step == 2)
 			$file_list = [];
 			if (is_array($_REQUEST['file_list']))
 			{
-				foreach($_REQUEST['file_list'] as $file => $str)
+				foreach ($_REQUEST['file_list'] as $file => $str)
 				{
 					if (!$f = unserialize($str))
 					{
@@ -1094,13 +1166,15 @@ elseif($Step == 2)
 			$concurrency = 20;
 			$num = 0;
 			$bFirst = true;
-			while(!$strErrMsg)
+			while (!$strErrMsg)
 			{
 				while (haveTime() && count(CMultiGet::$connections) < $concurrency && (false !== $line = fgets($rsFile)))
 				{
 					$num++;
 					if (mb_strpos($line,'<'.'?php') === 0)
+					{
 						continue;
+					}
 					if (!preg_match('#^(\d{4}-\d{2}-\d{2} [\d:]{8})[ \t]+(\d+)[ \t]+(.+)$#', trim($line), $regs))
 					{
 						$strErrMsg = 'File parse error '.RESTORE_CLOUD_FILE_LIST.' for line '.$num.': '.$line;
@@ -1113,7 +1187,9 @@ elseif($Step == 2)
 					$save_path = preg_replace('#^[^/]+/#', '', $regs[3]);
 
 					if (preg_match('#^[^/]*(cache/|tmp/|test.txt)#', $save_path))
+					{
 						continue;
+					}
 
 					$url = 'https://'.$mirror.'/'.$path;
 					$file = $_SERVER['DOCUMENT_ROOT'].'/upload/'.$save_path;
@@ -1121,9 +1197,13 @@ elseif($Step == 2)
 					if (file_exists($file))
 					{
 						if (filesize($file) == $size)
+						{
 							continue;
+						}
 						if (filesize($file) > $size)
+						{
 							bx_unlink($file);
+						}
 					}
 
 					if (!CMultiGet::startLoad($url, $file))
@@ -1150,19 +1230,18 @@ elseif($Step == 2)
 
 					unset($file_list[$connection['file']]); // файла нет
 
-					if($bFirst)
+					if ($bFirst)
 					{
 						$mirror_list_orig = $mirror_list;
 						$bFirst = false;
 					}
 
-					foreach($mirror_list as $mirror => $speed)
+					foreach ($mirror_list as $mirror => $speed)
 					{
 						if (mb_strpos($url,'https://'.$mirror) === 0)
 						{
 							unset($mirror_list[$mirror]);
 							CMultiGet::$bytes = 0;
-							$START_TIME = microtime(1);
 							break;
 						}
 					}
@@ -1177,14 +1256,17 @@ elseif($Step == 2)
 						continue;
 					}
 
-					//$strErrMsg = nl2br(htmlspecialcharsbx(CMultiGet::$error));
-					if(!file_exists(RESTORE_CLOUD_FILE_LIST_404))
+					if (!file_exists(RESTORE_CLOUD_FILE_LIST_404))
+					{
 						file_put_contents(RESTORE_CLOUD_FILE_LIST_404, '<'.'?php die(); ?'.'>'."\n");
+					}
 					file_put_contents(RESTORE_CLOUD_FILE_LIST_404, nl2br(htmlspecialcharsbx(CMultiGet::$error))."\n", FILE_APPEND);
 				}
 
 				if (!haveTime())
+				{
 					break;
+				}
 			}
 			// для следующего хита обновим список зеркал
 			if ($bFirst === false)
@@ -1198,35 +1280,41 @@ elseif($Step == 2)
 				$size = filesize(RESTORE_CLOUD_FILE_LIST);
 				SetCurrentProgress($position, $size);
 				if (mb_strlen($file) > 80)
+				{
 					$file = '...'.mb_substr($file,-80);
+				}
 				$text =	getMsg('ARC_DOWN_PROCESS').' <b>'.htmlspecialcharsbx($file).'</b>'.
 					$status.
 					GetHidden(array('source', 'dump_name', 'arc_name', 'init_time')).'
 					<input type="hidden" name="cloud_download" value="Y">
 					<input type="hidden" name="position" value="'.$position.'">';
 
-				foreach($file_list as $file => $f)
+				foreach ($file_list as $file => $f)
 				{
 					if (!file_exists($file) || filesize($file) < $f['size'])
+					{
 						$text .= '<input type="hidden" name="file_list['.htmlspecialcharsbx($file).']" value="'.htmlspecialcharsbx(serialize($f)).'">';
+					}
 				}
 
 				$mirror_list[$mirror] = round(CMultiGet::$bytes * 8/1024/1024/STEP_TIME, 2); // Mbit/s
-				foreach($mirror_list as $mirror => $speed)
+				foreach ($mirror_list as $mirror => $speed)
 				{
 					$text .= '<input type="hidden" name="mirror_list['.htmlspecialcharsbx($mirror).']" value="'.$speed.'">';
 				}
 
 				$bottom = '<a href="javascript:reloadPage(1)">'.getMsg('BUT_TEXT_BACK').'</a>'.
 					' <input type=button value="'.getMsg('SKIP').'" onClick="document.forms.restore.skip.value=1;reloadPage(2)">';
-				showMsg(getMsg('TITLE3'),$text,$bottom);
+				showMsg(getMsg('TITLE3'), $text, $bottom);
 				?><script>reloadPage(2, 1);</script><?
 				die();
 			}
 			fclose($rsFile);
 		}
 		else
+		{
 			$strErrMsg = getMsg("LOADER_LOAD_CANT_OPEN_READ", ["#FILE#" => RESTORE_CLOUD_FILE_LIST]);
+		}
 
 		if (!$strErrMsg)
 		{
@@ -1257,55 +1345,65 @@ elseif($Step == 2)
 		{
 			$bUTF_conf = preg_match('#^[ \t]*define\(.BX_UTF.+true\)#mi', $strFile);
 
-			if(file_exists($main_version) && include_once($main_version))
+			$mbstringVersion = false;
+			$versionFile = $_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/classes/general/version.php";
+			if (file_exists($versionFile) && include_once($versionFile))
 			{
-				if(version_compare_bx(SM_VERSION, '20.100.0') >= 0)
+				if (version_compare(SM_VERSION, '20.100.0') >= 0)
 				{
+					$mbstringVersion = true;
 					if ($mb_overload_value > 0)
+					{
 						$strErrMsg = getMsg('FUNC_OVERLOAD_ERROR').'<br><br>'.$strErrMsg;
-				}
-				else
-				{
-					if ($bUTF_conf && !$bUTF_serv)
-						$strErrMsg = getMsg('UTF8_ERROR1').'<br><br>'.$strErrMsg;
-                    elseif (!$bUTF_conf && $bUTF_serv)
-						$strErrMsg = getMsg('UTF8_ERROR2').'<br><br>'.$strErrMsg;
+					}
 				}
 			}
-			else
+			if (!$mbstringVersion)
 			{
 				if ($bUTF_conf && !$bUTF_serv)
+				{
 					$strErrMsg = getMsg('UTF8_ERROR1').'<br><br>'.$strErrMsg;
+				}
                 elseif (!$bUTF_conf && $bUTF_serv)
+				{
 					$strErrMsg = getMsg('UTF8_ERROR2').'<br><br>'.$strErrMsg;
-
+				}
 			}
 		}
 
 		if ($strErrMsg)
 		{
-				$ar = array(
-					'TITLE' => getMsg("TITLE2"),
-					'TEXT' => '<div style="color:red">'.$strErrMsg.'</div>',
-					'BOTTOM' =>
-					'<input type="hidden" name="source" value="dump">'.GetHidden(array('dump_name', 'arc_name')).
-					'<a href="javascript:reloadPage(1)">'.getMsg('BUT_TEXT_BACK').'</a> '.
-					'<input type="button" value="'.getMsg("DUMP_RETRY").'" onClick="reloadPage(2)"> '
-				);
-				html($ar);
+			$ar = array(
+				'TITLE' => getMsg("TITLE2"),
+				'TEXT' => '<div style="color:red">'.$strErrMsg.'</div>',
+				'BOTTOM' =>
+				'<input type="hidden" name="source" value="dump">'.GetHidden(array('dump_name', 'arc_name')).
+				'<a href="javascript:reloadPage(1)">'.getMsg('BUT_TEXT_BACK').'</a> '.
+				'<input type="button" value="'.getMsg("DUMP_RETRY").'" onClick="reloadPage(2)"> '
+			);
+			html($ar);
 		}
 		else
 		{
-
-			if (!isset($_REQUEST['DBName']) || !$_REQUEST['DBName'])
+			if (empty($_REQUEST['DBName']))
 			{
 				$DBName = '';
-				if (file_exists($dbconn) && $str = file_get_contents($dbconn))
+
+				$config = $_SERVER['DOCUMENT_ROOT']."/bitrix/.settings.php";
+				if (file_exists($config))
 				{
-					$ar = explode("\n", $str);
-					foreach($ar as $l)
-						if (preg_match('#^[ \t]*\$(DBHost|DBLogin|DBPassword|DBName)[ \t]*=[ \t]*["\']([^"\']+)["\']#', $l))
-							eval($l);
+					$ar = include($config);
+
+					if (is_array($ar))
+					{
+						if (is_array($ar['connections']['value']['default']))
+						{
+							$DBHost = $ar['connections']['value']['default']['host'] ?? '';
+							$DBName = $ar['connections']['value']['default']['database'] ?? '';
+							$DBLogin = $ar['connections']['value']['default']['login'] ?? '';
+							$DBPassword = $ar['connections']['value']['default']['password'] ?? '';
+						}
+					}
 				}
 
 				if ($DBName && !preg_match('#^\*+$#', $DBName))
@@ -1315,7 +1413,7 @@ elseif($Step == 2)
 				}
 				else
 				{
-					$DBHost = 'localhost'.(file_exists($_SERVER['DOCUMENT_ROOT'].'/../BitrixEnv.exe') ? ':31006' : '');
+					$DBHost = 'localhost';
 					$DBLogin = 'root';
 					$DBPassword = '';
 					$DBName = 'bitrix_'.(rand(11,99));
@@ -1328,22 +1426,24 @@ elseif($Step == 2)
 				$DBLogin = $_REQUEST["DBLogin"];
 				$DBPassword = $_REQUEST["DBPassword"];
 				$DBName = $_REQUEST["DBName"];
-				$create_db = $_REQUEST["create_db"] == "Y";
+				$create_db = ($_REQUEST["create_db"] ?? '') == "Y";
 			}
 
 			$arDName = getDumpList();
 			$strDName = '';
-			foreach($arDName as $db)
+			foreach ($arDName as $db)
+			{
 				$strDName .= '<option value="'.htmlspecialcharsbx($db).'">'.htmlspecialcharsbx($db).'</option>';
+			}
 
-			if(count($arDName))
+			if (!empty($arDName))
 			{
 				$ar = array(
 					'TITLE' => getMsg("TITLE2"),
 					'TEXT' =>
 						($strWarning ? '<div style="color:red;text-align:center"><b>'.getMsg('WARNING').'</b></div> <ul style="color:red">'.$strWarning.'</ul>' : '').
 						'<input type="hidden" name="arc_name" value="'.htmlspecialcharsbx($arc_name).'">'.
-						(count($arDName)>1 ? getMsg("DB_SELECT").' <select name="dump_name">'.$strDName.'</select>' : '<input type=hidden name=dump_name value="'.htmlspecialcharsbx($arDName[0]).'">').
+						(count($arDName) >  1 ? getMsg("DB_SELECT").' <select name="dump_name">'.$strDName.'</select>' : '<input type=hidden name=dump_name value="'.htmlspecialcharsbx($arDName[0]).'">').
 						'<div style="border:1px solid #aeb8d7;padding:5px;margin-top:4px;margin-bottom:4px;">
 						<div style="text-align:center;color:#aeb8d7;margin:4px"><b>'.getMsg("DB_SETTINGS").'</b></div>
 						<table width=100% cellspacing=0 cellpadding=2 border=0 class="content-table">
@@ -1374,63 +1474,33 @@ elseif($Step == 2)
 				html($ar);
 			}
 			else
+			{
 				showMsg(getMsg('FINISH'),GetHidden(array('dump_name', 'arc_name')).'<script>reloadPage(4);</script>');
+			}
 		}
 	}
 }
-elseif($Step == 3)
+elseif ($Step == 3)
 {
-	$d_pos = (double) $_REQUEST["d_pos"];
+	$d_pos = (double) ($_REQUEST["d_pos"] ?? 0);
 	if ($d_pos < 0)
+	{
 		$d_pos = 0;
+	}
 
 	if (!isset($_REQUEST['d_pos'])) // start
 	{
-		if(!file_exists($dbconn))
-		{
-			if (!is_dir($dir = dirname($dbconn)))
-				mkdir($dir, 0777, true);
-			file_put_contents($dbconn, '<?'."\n".
-				'define("DBPersistent", false);'."\n".
-				'$DBType = "mysql";'."\n".
-				'$DBHost = "";'."\n".
-				'$DBLogin = "";'."\n".
-				'$DBPassword = "";'."\n".
-				'$DBName = "";'."\n".
-				"\n".
-				'$DBDebug = false;'."\n".
-				'$DBDebugToFile = false;'."\n".
-				'?>');
-		}
-
-		if (file_exists($tmp = str_replace('dbconn.php','dbconn.restore.php',$dbconn)))
+		$dbconnRestore = $_SERVER['DOCUMENT_ROOT']."/bitrix/php_interface/dbconn.restore.php";
+		if (file_exists($dbconnRestore))
 		{
 			bx_unlink($dbconn);
-			rename($tmp, $dbconn);
+			rename($dbconnRestore, $dbconn);
 		}
 
-		$arFile = file($dbconn);
-		foreach($arFile as $line)
+		$configRestore = $_SERVER['DOCUMENT_ROOT']."/bitrix/.settings.restore.php";
+		if (file_exists($configRestore))
 		{
-			$line = str_replace("\r\n", "\n", $line);
-			if (preg_match('#^[ \t]*\$(DBHost|DBLogin|DBPassword|DBName)#',$line,$regs))
-			{
-				$key = $regs[1];
-				$line = '$'.$key.' = "'.str_replace('$','\$',addslashes($_REQUEST[$key])).'";'."\n";
-			}
-			$strFile .= $line;
-		}
-
-		if (defined('VMBITRIX') && !preg_match('#^[ \t]*define..BX_CRONTAB_SUPPORT#mi', $strFile))
-			$strFile = '<'.'?define("BX_CRONTAB_SUPPORT", true);?'.'>'.$strFile;
-
-		file_put_contents($dbconn, $strFile);
-
-		if (file_exists($config = $_SERVER['DOCUMENT_ROOT']."/bitrix/.settings.php"))
-		{
-			ob_start();
-			$ar = include($config);
-			ob_end_clean();
+			$ar = include($configRestore);
 
 			if (is_array($ar))
 			{
@@ -1441,28 +1511,33 @@ elseif($Step == 3)
 					$ar['connections']['value']['default']['login'] = $_REQUEST['DBLogin'];
 					$ar['connections']['value']['default']['password'] = $_REQUEST['DBPassword'];
 					$data = var_export($ar, true);
-					file_put_contents($config, "<"."?php\nreturn ".$data.";\n");
+					file_put_contents($configRestore, "<"."?php\nreturn ".$data.";\n");
+
+					$config = $_SERVER['DOCUMENT_ROOT']."/bitrix/.settings.php";
+					bx_unlink($config);
+					rename($configRestore, $config);
 				}
 			}
-			else
-				rename($config, $_SERVER['DOCUMENT_ROOT']."/bitrix/.settings.restore.php"); // workaround for bug #47641
+			bx_unlink($configRestore);
 		}
 
 		SetCurrentProgress(0);
 		$r = true;
 	}
 	else
+	{
 		$r = $oDB->restore();
+	}
 
 	$bottom = '<a href="/restore.php?Step=2&lang='.LANG.'">'.getMsg('BUT_TEXT_BACK').'</a> ';
-	if($r && !$oDB->is_end())
+	if ($r && !$oDB->is_end())
 	{
 		$d_pos = $oDB->getPos();
 		$oDB->close();
 		$arc_name = $_REQUEST["arc_name"] ?? '';
 		$dump_name = preg_replace('#\.[0-9]+$#', '', $_SERVER['DOCUMENT_ROOT'].'/bitrix/backup/'.$_REQUEST['dump_name']);
 		$dump_size = 0;
-		while(file_exists($dump_name))
+		while (file_exists($dump_name))
 		{
 			$dump_size += filesize($dump_name);
 			$dump_name = CDBRestore::getNextName($dump_name);
@@ -1475,18 +1550,20 @@ elseif($Step == 3)
 		<input type="hidden" name="check_site_path" value="Y">
 		<input type="hidden" name="d_pos" value="'.$d_pos.'">
 		<input type="hidden" name="DBLogin" value="'.htmlspecialcharsbx($_REQUEST["DBLogin"]).'">
-		<input type="hidden" name="DBPassword" value="'. (mb_strlen($_REQUEST["DBPassword"]) > 0 ? htmlspecialcharsbx($_REQUEST["DBPassword"]) : "").'">
+		<input type="hidden" name="DBPassword" value="'. (mb_strlen($_REQUEST["DBPassword"]) > 0 ? htmlspecialcharsbx($_REQUEST["DBPassword"]) : '').'">
 		<input type="hidden" name="DBName" value="'. htmlspecialcharsbx($_REQUEST["DBName"]).'">
 		<input type="hidden" name="DBHost" value="'. htmlspecialcharsbx($_REQUEST["DBHost"]).'">
-		<input type="hidden" name="LocalCloud" value="'. ($_REQUEST["LocalCloud"] ? 'Y' : '').'">
+		<input type="hidden" name="LocalCloud" value="'. (!empty($_REQUEST["LocalCloud"]) ? 'Y' : '').'">
 		';
-		showMsg(getMsg('TITLE_PROCESS2'),$text,$bottom);
+		showMsg(getMsg('TITLE_PROCESS2'), $text, $bottom);
 		?><script>reloadPage(3, 1);</script><?
 	}
 	else
 	{
-		if($oDB->getError() != "")
+		if ($oDB->getError() != '')
+		{
 			showMsg(getMsg("ERR_DUMP_RESTORE"), '<div style="color:red">'.$oDB->getError().'</div>', $bottom);
+		}
 		else
 		{
 			if (!$oDB->ft_index)
@@ -1497,20 +1574,20 @@ elseif($Step == 3)
 		}
 	}
 }
-elseif($Step == 4)
+elseif ($Step == 4)
 {
 	$strWarning .= CheckHtaccessAndWarn();
 
-	if (isset($_REQUEST['check_site_path']) && $_REQUEST['check_site_path'])
+	if (!empty($_REQUEST['check_site_path']))
 	{
-		$oDB = new CDBRestore($_REQUEST["DBHost"], $_REQUEST["DBName"], $_REQUEST["DBLogin"], $_REQUEST["DBPassword"], $_REQUEST["dump_name"], $d_pos);
+		$oDB = new CDBRestore($_REQUEST["DBHost"], $_REQUEST["DBName"], $_REQUEST["DBLogin"], $_REQUEST["DBPassword"], $_REQUEST["dump_name"], 0);
 		if ($oDB->Connect())
 		{
-			if ($rs = $oDB->Query('SELECT * FROM b_lang WHERE DOC_ROOT != "'.$oDB->escapeString($_SERVER['DOCUMENT_ROOT']).'" AND DOC_ROOT IS NOT NULL AND DOC_ROOT != ""'))
+			if ($rs = $oDB->Query("SELECT * FROM b_lang WHERE DOC_ROOT != '".$oDB->escapeString($_SERVER['DOCUMENT_ROOT'])."' AND DOC_ROOT IS NOT NULL AND DOC_ROOT != ''"))
 			{
 				if ($oDB->Fetch($rs))
 				{
-					$oDB->Query('UPDATE b_lang SET DOC_ROOT = "" ');
+					$oDB->Query("UPDATE b_lang SET DOC_ROOT = '' ");
 					$strWarning .= '<li>'.getMsg('DOC_ROOT_WARN');
 				}
 			}
@@ -1549,7 +1626,9 @@ elseif($Step == 4)
 
 		}
 		else
+		{
 			$strWarning .= '<li>'.$oDB->getError();
+		}
 	}
 
 	$text =
@@ -1559,7 +1638,7 @@ elseif($Step == 4)
 		'<input type=button style="padding:0 13px;font-size:13px;" value="'.getMsg('DELETE_FILES').'" onClick="reloadPage(5)">';
 	showMsg(getMsg("FINISH"), $text, $bottom);
 }
-elseif($Step == 5)
+elseif ($Step == 5)
 {
 	$ok = true;
 	$ok = bx_unlink($_SERVER['DOCUMENT_ROOT'].'/bitrixsetup.php') && $ok;
@@ -1570,22 +1649,26 @@ elseif($Step == 5)
 		$ok = bx_unlink($_SERVER["DOCUMENT_ROOT"]."/bitrix/backup/".str_replace('.sql','_after_connect.sql',$_REQUEST["dump_name"])) && $ok;
 	}
 
-	if(isset($_REQUEST['arc_name']) && mb_strpos($_REQUEST['arc_name'],'bitrix/') === false)
+	if (isset($_REQUEST['arc_name']) && mb_strpos($_REQUEST['arc_name'],'bitrix/') === false)
 	{
 		$ok = bx_unlink($_SERVER["DOCUMENT_ROOT"]."/".$_REQUEST["arc_name"]) && $ok;
 		$i = 0;
-		while(file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_REQUEST['arc_name'].'.'.++$i))
+		while (file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$_REQUEST['arc_name'].'.'.++$i))
+		{
 			$ok = bx_unlink($_SERVER['DOCUMENT_ROOT'].'/'.$_REQUEST['arc_name'].'.'.$i) && $ok;
+		}
 	}
 
-	foreach(array('cache', 'stack_cache', 'managed_cache', 'resize_cache', 'tmp') as $dir)
+	foreach (array('cache', 'stack_cache', 'managed_cache', 'resize_cache', 'tmp') as $dir)
 	{
 		$ok = DeleteDirRec($_SERVER['DOCUMENT_ROOT'].'/bitrix/'.$dir) && $ok;
 	}
 
 	$ok = bx_unlink($_SERVER["DOCUMENT_ROOT"]."/restore.php") && $ok;
 	if (!$ok)
+	{
 		showMsg(getMsg("FINISH_ERR_DELL_TITLE"), '<span style="color:red">'.getMsg("FINISH_ERR_DELL").'</span>');
+	}
 	else
 	{
 		showMsg(getMsg("FINISH"), getMsg("FINISH_MSG"), '<input type=button onclick="document.location=\'/\'" value="'.getMsg("FINISH_BTN").'">');
@@ -1593,23 +1676,22 @@ elseif($Step == 5)
 	}
 }
 
-#################### END ############
-
 class CDBRestore
 {
-	var $type = "";
-	var $DBHost ="";
-	var $DBName = "";
-	var $DBLogin = "";
-	var $DBPassword = "";
-	var $DBdump = "";
-	var $db_Conn = "";
-	var $db_Error = "";
+	var $type = '';
+	var $DBHost ='';
+	var $DBName = '';
+	var $DBLogin = '';
+	var $DBPassword = '';
+	var $DBdump = '';
+	var $db_Conn = '';
+	var $db_Error = '';
 	var $f_end = false;
 	var $start;
 	var $d_pos;
 	var $_dFile;
 	var $mysqli;
+	public $LocalCloud = '';
 
 	public function __construct($DBHost, $DBName, $DBLogin, $DBPassword, $DBdump, $d_pos)
 	{
@@ -1623,11 +1705,11 @@ class CDBRestore
 		$this->ft_index = null;
 	}
 
-	function Query($sql)
+	function Query($sql, $ignoreError = false)
 	{
 		if ($this->ft_index === false && preg_match("#^CREATE TABLE.*FULLTEXT KEY#ms", $sql))
 		{
-			$sql = preg_replace("#[\r\n\s]*FULLTEXT KEY[^\r\n]*[\r\n]*#m", "", $sql);
+			$sql = preg_replace("#[\r\n\s]*FULLTEXT KEY[^\r\n]*[\r\n]*#m", '', $sql);
 			$sql = str_replace("),)", "))", $sql);
 		}
 
@@ -1641,7 +1723,7 @@ class CDBRestore
 			}
 		}
 
-		if (!$rs)
+		if (!$rs && !$ignoreError)
 		{
 			$this->db_Error = "<font color=#ff0000>MySQL query error!</font><br>".($this->mysqli ? mysqli_error($this->db_Conn) : mysql_error()).'<br><br>'.htmlspecialcharsbx($sql);
 			return false;
@@ -1661,11 +1743,11 @@ class CDBRestore
 		$this->Query('SET FOREIGN_KEY_CHECKS = 0');
 
 		$dbExists = $this->mysqli ? @mysqli_select_db($this->db_Conn, $this->DBName) : @mysql_select_db($this->DBName, $this->db_Conn);
-		if(!$dbExists)
+		if (!$dbExists)
 		{
 			if (@$_REQUEST["create_db"]=="Y")
 			{
-				if(!@$this->Query("CREATE DATABASE `".$this->escapeString($this->DBName)."`"))
+				if (!@$this->Query("CREATE DATABASE `".$this->escapeString($this->DBName)."`"))
 				{
 					$this->db_Error = getMsg("ERR_CREATE_DB").': '.($this->mysqli ? mysqli_error($this->db_Conn) : mysql_error());
 					return false;
@@ -1673,7 +1755,7 @@ class CDBRestore
 				$dbExists = $this->mysqli ? @mysqli_select_db($this->db_Conn, $this->DBName) : @mysql_select_db($this->DBName, $this->db_Conn);
 			}
 
-			if(!$dbExists)
+			if (!$dbExists)
 			{
 				$this->db_Error = "<font color=#ff0000>Error! mysql".($this->mysqli ? 'i' : '')."_select_db(".htmlspecialcharsbx($this->DBName).")</font><br>".($this->mysqli ? mysqli_error($this->db_Conn) : mysql_error())."<br>";
 				return false;
@@ -1681,17 +1763,19 @@ class CDBRestore
 		}
 
 		$this->Query("SET SQL_MODE=''");
-		$this->Query("SET innodb_strict_mode=0");
+		$this->Query("SET innodb_strict_mode=0", true);
 
 		$after_file = str_replace('.sql','_after_connect.sql',$this->DBdump);
 		if (file_exists($after_file))
 		{
 			$arSql = explode(';',file_get_contents($after_file));
-			foreach($arSql as $sql)
+			foreach ($arSql as $sql)
 			{
 				$sql = str_replace('<DATABASE>', $this->DBName, $sql);
 				if (trim($sql))
+				{
 					$this->Query($sql);
+				}
 			}
 		}
 
@@ -1710,9 +1794,9 @@ class CDBRestore
 
 	function readSql()
 	{
-		$cache = "";
+		$cache = '';
 
-		while(CTar::substr($cache, -2, 1) != ";")
+		while (CTar::substr($cache, -2, 1) != ";")
 		{
 			$line = fgets($this->_dFile);
 			if (feof($this->_dFile) || $line === false)
@@ -1737,15 +1821,17 @@ class CDBRestore
 			$cache .= $line;
 		}
 
-		if($this->f_end)
+		if ($this->f_end)
+		{
 			return false;
+		}
 		return $cache;
 	}
 
 	function restore()
 	{
 		clearstatcache();
-		while($this->d_pos > ($s = filesize($this->DBdump)) && file_exists($this->DBdump))
+		while ($this->d_pos > ($s = filesize($this->DBdump)) && file_exists($this->DBdump))
 		{
 			$this->d_pos -= $s;
 			$this->DBdump = self::getNextName($this->DBdump);
@@ -1757,35 +1843,41 @@ class CDBRestore
 			return false;
 		}
 
-		if($this->d_pos > 0)
+		if ($this->d_pos > 0)
+		{
 			fseek($this->_dFile, $this->d_pos);
+		}
 
-		while(haveTime() && ($sql = $this->readSql()))
+		while (haveTime() && ($sql = $this->readSql()))
 		{
 			if (defined('VMBITRIX'))
 			{
 				if (preg_match('#^CREATE TABLE#i',$sql))
 				{
-					$sql = preg_replace('#ENGINE=MyISAM#i','',$sql);
-					$sql = preg_replace('#TYPE=MyISAM#i','',$sql);
+					$sql = preg_replace('#ENGINE=MyISAM#i', '', $sql);
+					$sql = preg_replace('#TYPE=MyISAM#i', '', $sql);
 				}
 			}
 
 			$rs = $this->Query($sql);
 
-			if(!$rs)
+			if (!$rs)
 			{
 				if ($this->getErrorNum() != 1062) // Duplicate entry
+				{
 					return false;
+				}
 
-				if (preg_match('#^(INSERT[^\(]+VALUES[^\(]+)\((.+)\);?$#mis', $sql, $regs))
+				if (preg_match('#^(INSERT[^(]+VALUES[^(]+)\((.+)\);?$#mis', $sql, $regs))
 				{
 					$insert = $regs[1];
-					foreach(preg_split('#\),[^\(]\(#', $regs[2]) as $values)
+					foreach (preg_split('#\),[^(]\(#', $regs[2]) as $values)
 					{
 						$rs = $this->Query($insert.'('.$values.')');
 						if (!$rs && $this->getErrorNum() != 1062)
+						{
 							return false;
+						}
 					}
 					return true;
 				}
@@ -1796,17 +1888,23 @@ class CDBRestore
 		if ($this->LocalCloud && $this->f_end)
 		{
 			$i = '';
-			while(file_exists($_SERVER['DOCUMENT_ROOT'].'/upload/'.($name = 'clouds'.$i)))
+			while (file_exists($_SERVER['DOCUMENT_ROOT'].'/upload/'.($name = 'clouds'.$i)))
+			{
 				$i++;
+			}
 			if (!file_exists($f = $_SERVER['DOCUMENT_ROOT'].'/upload'))
+			{
 				mkdir($f);
+			}
 			if (rename($_SERVER['DOCUMENT_ROOT'].'/bitrix/backup/clouds', $_SERVER['DOCUMENT_ROOT'].'/upload/'.$name))
 			{
 				$arFiles = scandir($_SERVER['DOCUMENT_ROOT'].'/upload/'.$name);
-				foreach($arFiles as $file)
+				foreach ($arFiles as $file)
 				{
 					if ($id = intval($file))
+					{
 						$this->Query('UPDATE b_file SET SUBDIR = CONCAT("'.$name.'/'.$id.'/", SUBDIR), HANDLER_ID=NULL WHERE HANDLER_ID ='.$id);
+					}
 				}
 			}
 		}
@@ -1830,20 +1928,23 @@ class CDBRestore
 			$res = ftell($this->_dFile);
 			$prev = preg_replace('#\.[0-9]+$#', '', $this->DBdump);
 			clearstatcache();
-			while($this->DBdump != $prev)
+			while ($this->DBdump != $prev)
 			{
 				if (!file_exists($prev))
+				{
 					return false;
+				}
 				$res += filesize($prev);
 				$prev = self::getNextName($prev);
 			}
 			return $res;
 		}
+		return false;
 	}
 
 	function close()
 	{
-		unset($this->_dFile);
+		$this->_dFile = null;
 		return true;
 	}
 
@@ -1862,9 +1963,13 @@ class CDBRestore
 			$l = mb_strrpos($file,'.');
 			$num = CTar::substr($file,$l+1);
 			if (is_numeric($num))
+			{
 				$file = CTar::substr($file,0,$l+1).++$num;
+			}
 			else
+			{
 				$file .= '.1';
+			}
 			$c = $file;
 		}
 		return $c;
@@ -1873,23 +1978,31 @@ class CDBRestore
 
 function getDumpList()
 {
-	$arDump = array();
+	$arDump = [];
 	if (is_dir($back_dir = $_SERVER["DOCUMENT_ROOT"]."/bitrix/backup"))
 	{
 		$handle = opendir($back_dir);
 		while (false !== ($file = readdir($handle)))
 		{
-			if($file == "." || $file == "..")
+			if ($file == "." || $file == "..")
+			{
 				continue;
+			}
 
-			if(is_dir($back_dir.'/'.$file))
+			if (is_dir($back_dir.'/'.$file))
+			{
 				continue;
+			}
 
 			if (mb_strpos($file,'_after_connect.sql'))
+			{
 				continue;
+			}
 
-			if(mb_substr($file,mb_strlen($file) - 3,3) == "sql")
+			if (mb_substr($file, mb_strlen($file) - 3, 3) == "sql")
+			{
 				$arDump[] = $file;
+			}
 		}
 	}
 
@@ -1900,33 +2013,43 @@ function getMsg($index, $ar = [])
 {
 	global $MESS;
 	$str = $MESS[$index];
-	foreach($ar as $k => $v)
+	foreach ($ar as $k => $v)
 		$str = str_replace($k, $v, $str);
 	return $str;
 }
 
 function getArcList()
 {
-	$arc = "";
+	$arc = '';
 	global $strErrMsg;
 
 	$handle = @opendir($_SERVER["DOCUMENT_ROOT"]);
 	if (!$handle)
+	{
 		return false;
+	}
 
 	while (false !== ($file = @readdir($handle)))
 	{
-		if($file == "." || $file == "..")
+		if ($file == "." || $file == "..")
+		{
 			continue;
+		}
 
-		if(is_dir($_SERVER["DOCUMENT_ROOT"]."/".$file))
+		if (is_dir($_SERVER["DOCUMENT_ROOT"]."/".$file))
+		{
 			continue;
+		}
 
-		if(preg_match('#\.(tar|enc)(\.gz)?$#',$file))
+		if (preg_match('#\.(tar|enc)(\.gz)?$#',$file))
+		{
 			$arc .= "<option value=\"$file\"> ".$file;
+		}
 
-		if(mb_substr($file,mb_strlen($file) - 7,7) == "tar.tar")
+		if (mb_substr($file,mb_strlen($file) - 7,7) == "tar.tar")
+		{
 			$strErrMsg = getMsg('ERR_TAR_TAR');
+		}
 	}
 
 	return $arc;
@@ -2065,7 +2188,6 @@ function html($ar)
 			display: block;
 			height: 46px;
 			background-repeat: no-repeat;
-			/*background-size:cover;*/
 		}
 
 		.wrap.en .logo,
@@ -2080,7 +2202,6 @@ function html($ar)
 			display: block;
 			height: 46px;
 			background-repeat: no-repeat;
-			/*background-size:cover;*/
 		}
 
 		.wrap.en .buslogo,
@@ -2259,7 +2380,7 @@ function html($ar)
 		.lang.en:after{ background-position: 0 -13px;}
 		.lang.ua:after{ background-position: 0 -26px;}
 		.lang.de:after{ background-position: 0 -39px;}
-		/**/
+
 		.select-container{
 			border:2px solid #d5dde0;
 			height: 32px;
@@ -2340,7 +2461,6 @@ function html($ar)
 		.content-table input[type="text"],
 		.content-table input[type="password"],
 		.content-table select{
-			/*width:100%;*/
 			box-sizing: border-box;
 			border: 2px solid #e0e6e9;
 			border-radius:3px;
@@ -2364,12 +2484,10 @@ function html($ar)
 		}
 	</style>
 	<script>
-		var frm;
 		function reloadPage(val, delay)
 		{
-			frm = document.forms.restore;
-			frm.Step.value = val;
-			window.setTimeout(function() {frm.submit()}, delay == null ? 0 : delay * 1000);
+			document.forms.restore.Step.value = val;
+			window.setTimeout(function() {document.forms.restore.submit()}, delay == null ? 0 : delay * 1000);
 		}
 
 		function addFileField()
@@ -2387,18 +2505,26 @@ function html($ar)
 
 		function div_show(i)
 		{
-			document.getElementById('start_button').disabled = i == 0;
-			for(j=0;j<=4;j++)
+			var startButton = document.getElementById('start_button');
+			if (startButton)
+			{
+				startButton.disabled = (i == 0);
+			}
+			for (var j = 0; j <= 4; j++)
 			{
 				if (ob = document.getElementById('div' + j))
-					ob.style.display = i == j ? 'block' : 'none';
+				{
+					ob.style.display = (i == j ? 'block' : 'none');
+				}
 			}
 
-			arSources = [ 'bitrixcloud','download','upload','local','dump' ];
+			var arSources = [ 'bitrixcloud','download','upload','local','dump' ];
 			document.forms.restore.source.value = arSources[i];
 
 			if (i == 2)
+			{
 				document.forms.restore.action = '/restore.php?lang=<?=LANG?>&Step=2&source=' + arSources[i];
+			}
 		}
 
 		function LoadFileList()
@@ -2423,25 +2549,25 @@ function html($ar)
 		}
 
 		<?
-		if (isset($_REQUEST['arc_down_url']) && $_REQUEST['arc_down_url'])
+		if (!empty($_REQUEST['arc_down_url']))
 		{
 			?>
-			window.onload = div_show(1);
+			window.onload = setTimeout(function() {div_show(1)}, 1000);
 			<?
 		}
-		elseif (isset($_REQUEST['bitrixcloud_backup']) && $_REQUEST['bitrixcloud_backup'])
+		elseif (!empty($_REQUEST['bitrixcloud_backup']))
 		{
 			?>
-			window.onload = function() {
+			window.onload = setTimeout(function() {
 				div_show(0);
 				LoadFileList();
-			}
+			}, 1000)
 			<?
 		}
 		?>
 	</script>
 	<div class="wrap <?=LANG?>">
-		<form name="restore" name="restore" action="restore.php" enctype="multipart/form-data" method="POST">
+		<form name="restore" action="restore.php" enctype="multipart/form-data" method="POST">
 			<input type="hidden" name="lang" value="<?=LANG?>">
 			<input type="hidden" name="source">
 			<input type="hidden" name="skip">
@@ -2465,16 +2591,7 @@ function html($ar)
 										<h3 class="content-header" style="margin: 0;padding: 0;text-align: left;"><?=$ar['TITLE']?></h3>
 										<hr style="margin: 15px 0;">
 									</td>
-									<td align=right>
-										<?
-										$arLang = array();
-										foreach(array('en') as $l)
-											$arLang[] = LANG == $l ? "<span style='color:grey'>$l</span>" : "<a href='?lang=$l' style='color:black'>$l</a>";
-				#						echo implode(' | ',$arLang);
-										?>
-									</td>
 								</tr></table>
-
 							</td>
 						</tr>
 						<tr>
@@ -2492,11 +2609,13 @@ function html($ar)
 							<label for="ss"><span class="selected-lang lang <?=LANG?>"></span></label>
 							<div class="select-popup" id="lang-popup">
 								<?
-								$langs = array('en','de');
-								if(LANG == 'ru')
-									$langs = array('en','de','ru');
-								
-								foreach($langs as $l)
+								$langs = ['en','de'];
+								if (LANG == 'ru')
+								{
+									$langs[] = 'ru';
+								}
+
+								foreach ($langs as $l)
 								{
 									?>
 									<div class="select-lang-item">
@@ -2524,7 +2643,7 @@ function html($ar)
 <?
 }
 
-function SetCurrentProgress($cur,$total=0,$red=true)
+function SetCurrentProgress($cur, $total = 0)
 {
 	global $status;
 	if (!$total)
@@ -2534,7 +2653,9 @@ function SetCurrentProgress($cur,$total=0,$red=true)
 	}
 	$val = intval($cur/$total*100);
 	if ($val > 100)
+	{
 		$val = 99;
+	}
 
 	$status = '
 	<div class="progressbar-container">
@@ -2545,14 +2666,16 @@ function SetCurrentProgress($cur,$total=0,$red=true)
 	</div>';
 }
 
-function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost = '')
+function LoadFile($strRealUrl, $strFilename, $arHeaders = [], $customHost = '')
 {
 	global $proxyaddr, $proxyport, $strUserAgent, $replycode;
 	$ssl = preg_match('#^https://#i', $strRealUrl);
 
 	$iStartSize = 0;
 	if (file_exists($strFilename.".tmp"))
+	{
 		$iStartSize = filesize($strFilename.".tmp");
+	}
 
 	$parsedurl = parse_url($strRealUrl);
 	$strOriginalFile = basename($parsedurl['path']);
@@ -2562,10 +2685,10 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 	do
 	{
 		$lasturl = $strRealUrl;
-		$redirection = "";
+		$redirection = '';
 
 		$parsedurl = parse_url($strRealUrl);
-		$useproxy = (($proxyaddr != "") && ($proxyport != ""));
+		$useproxy = (($proxyaddr != '') && ($proxyport != ''));
 
 		if (!$useproxy)
 		{
@@ -2580,10 +2703,13 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 			$hostname = $parsedurl["host"];
 		}
 		if ($customHost)
+		{
 			$host = $customHost;
+		}
+
 		SetCurrentStatus(getMsg("LOADER_LOAD_CONN2HOST", ["#HOST#" => $host]));
 
-		$port = $port ? $port : ($ssl ? 443 : 80);
+		$port = $port ?: ($ssl ? 443 : 80);
 
 		$context = stream_context_create(
 			array(
@@ -2604,46 +2730,56 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 			debug("\n======\nConnected to ".($ssl ? 'ssl://' : '')."$host:$port\n");
 
 			if (!$parsedurl["path"])
+			{
 				$parsedurl["path"] = "/";
+			}
 
-			$request = "";
+			$request = '';
 			if (!$useproxy)
 			{
 				$request .= "GET ".$parsedurl["path"].(isset($parsedurl["query"]) ? '?'.$parsedurl["query"] : '')." HTTP/1.0\r\n";
-				$request .= "Host: $hostname\r\n";
 			}
 			else
 			{
 				$request .= "GET ".$strRealUrl." HTTP/1.0\r\n";
-				$request .= "Host: $hostname\r\n";
+			}
+			$request .= "Host: $hostname\r\n";
+
+			if ($strUserAgent != '')
+			{
+				$request .= "User-Agent: $strUserAgent\r\n";
 			}
 
-			if ($strUserAgent != "")
-				$request .= "User-Agent: $strUserAgent\r\n";
-
 			if ($iStartSize > 0)
+			{
 				$request .= "Range: bytes=".$iStartSize."-\r\n";
+			}
 
-			foreach($arHeaders as $k => $v)
+			foreach ($arHeaders as $k => $v)
+			{
 				$request .= $k.': '.$v."\r\n";
+			}
 
 			$request .= "\r\n";
 
 			fwrite($sockethandle, $request);
 
-			$result = "";
+			$result = '';
 
-			$replyheader = "";
+			$replyheader = '';
 			while (($result = fgets($sockethandle, 4096)) && $result!="\r\n")
+			{
 				$replyheader .= $result;
+			}
 
 			debug("\n======\n".$request."\n\n".$replyheader);
+
 			$ar_replyheader = explode("\r\n", $replyheader);
 
-			$replyproto = "";
-			$replyversion = "";
+			$replyproto = '';
+			$replyversion = '';
 			$replycode = 0;
-			$replymsg = "";
+			$replymsg = '';
 			if (preg_match("#([A-Z]{4})/([0-9.]{3}) ([0-9]{3})#", $ar_replyheader[0], $regs))
 			{
 				$replyproto = $regs[1];
@@ -2655,26 +2791,38 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 			if ($replycode!=200 && $replycode!=206 && $replycode!=302 && $replycode!=301)
 			{
 				if ($replycode==403)
+				{
 					SetCurrentStatus(getMsg("LOADER_LOAD_SERVER_ANSWER1", ["#ANS#" => $replycode." - ".$replymsg]));
+				}
 				else
+				{
 					SetCurrentStatus(getMsg("LOADER_LOAD_SERVER_ANSWER", ["#ANS#" => $replycode." - ".$replymsg]));
+				}
 				return false;
 			}
 
-			$strContentRange = "";
-			$strAcceptRanges = "";
-			$strLocationUrl = "";
+			$strContentRange = '';
+			$strAcceptRanges = '';
+			$strLocationUrl = '';
 			$iNewRealSize = 0;
 			foreach ($ar_replyheader as $i => $headerLine)
 			{
 				if (mb_strpos($headerLine,"Content-Range") !== false)
+				{
 					$strContentRange = trim(mb_substr($headerLine,mb_strpos($headerLine,":") + 1,mb_strlen($headerLine) - mb_strpos($headerLine,":") + 1));
+				}
 				elseif (mb_strpos($headerLine,"Location") === 0)
+				{
 					$strLocationUrl = trim(mb_substr($headerLine,mb_strpos($headerLine,":") + 1,mb_strlen($headerLine) - mb_strpos($headerLine,":") + 1));
+				}
 				elseif (mb_strpos($headerLine,"Content-Length") !== false)
+				{
 					$iNewRealSize = intval(Trim(mb_substr($headerLine,mb_strpos($headerLine,":") + 1,mb_strlen($headerLine) - mb_strpos($headerLine,":") + 1)));
+				}
 				elseif (mb_strpos($headerLine,"Accept-Ranges") !== false)
+				{
 					$strAcceptRanges = Trim(mb_substr($headerLine,mb_strpos($headerLine,":") + 1,mb_strlen($headerLine) - mb_strpos($headerLine,":") + 1));
+				}
 			}
 
 			if (mb_strlen($strLocationUrl)>0)
@@ -2682,9 +2830,13 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 				$redirection = $strLocationUrl;
 				$redirected = true;
 				if (!preg_match('#^https?://#', $redirection))
+				{
 					$strRealUrl = dirname($lasturl)."/".$redirection;
+				}
 				else
+				{
 					$strRealUrl = $redirection;
+				}
 				$ssl = preg_match('#^https://#i', $strRealUrl);
 			}
 
@@ -2719,8 +2871,10 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 
 					$result = fread($sockethandle, 40960);
 					$downloadsize += mb_strlen($result);
-					if ($result=="")
+					if ($result=='')
+					{
 						break;
+					}
 
 					if (fwrite($fh, $result) === false)
 					{
@@ -2728,7 +2882,7 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 						return false;
 					}
 				}
-				SetCurrentProgress($downloadsize,$iNewRealSize);
+				SetCurrentProgress($downloadsize, $iNewRealSize);
 
 				fclose($fh);
 				fclose($sockethandle);
@@ -2748,7 +2902,9 @@ function LoadFile($strRealUrl, $strFilename, $arHeaders = array(), $customHost =
 					}
 				}
 				else
+				{
 					return 2;
+				}
 			}
 			fclose($sockethandle);
 		}
@@ -2764,9 +2920,9 @@ function SetCurrentStatus($str)
 
 class CTar
 {
-	var $gzip;
+	protected $gzip = false;
 	var $file;
-	var $err = array();
+	var $err = [];
 	var $LastErrCode;
 	var $res;
 	var $Block = 0;
@@ -2783,29 +2939,31 @@ class CTar
 	const BX_SIGNATURE = 'Bitrix Encrypted File';
 	var $BufferSize;
 	var $Buffer;
-	var $dataSizeCache = array();
+	var $dataSizeCache = [];
 	var $EncryptKey;
 	var $prefix = '';
 
-	##############
-	# READ
-	# {
 	function openRead($file)
 	{
-		if (!isset($this->gzip) && (self::substr($file,-3)=='.gz' || self::substr($file,-4)=='.tgz'))
+		if (self::substr($file, -3) == '.gz' || self::substr($file, -4) == '.tgz')
+		{
 			$this->gzip = true;
+		}
 
 		$this->BufferSize = 51200;
 
 		if ($this->open($file, 'r'))
 		{
-			if ('' !== $str = $this->gzip ? gzread($this->res,512) : fread($this->res,512))
+			$str = ($this->gzip ? gzread($this->res, 512) : fread($this->res, 512));
+			if ($str !== '')
 			{
 				$data = unpack("a100empty/a90signature/a10version/a56tail/a256enc", $str);
 				if (trim($data['signature']) != self::BX_SIGNATURE)
 				{
 					if (self::strlen($this->EncryptKey))
+					{
 						$this->Error('Invalid encryption signature','ENC_SIGN');
+					}
 
 					// Probably archive is not encrypted
 					$this->gzip ? gzseek($this->res, 0) : fseek($this->res, 0);
@@ -2816,13 +2974,17 @@ class CTar
 
 				$version = trim($data['version']);
 				if (version_compare($version, '1.2', '>'))
+				{
 					return $this->Error('Unsupported archive version: '.$version, 'ENC_VER');
+				}
 
 				$key = $this->getEncryptKey();
 				$this->BlockHeader = $this->Block = 1;
 
 				if (!$key || self::substr($str, 0, 256) != self::decrypt($data['enc'], $key))
+				{
 					return $this->Error('Invalid encryption key', 'ENC_KEY');
+				}
 			}
 		}
 		return $this->res;
@@ -2834,9 +2996,13 @@ class CTar
 		{
 			$str = $this->gzip ? gzread($this->res, $this->BufferSize) : fread($this->res, $this->BufferSize);
 			if ($str === '' && $this->openNext($bIgnoreOpenNextError))
+			{
 				$str = $this->gzip ? gzread($this->res, $this->BufferSize) : fread($this->res, $this->BufferSize);
+			}
 			if ($str !== '' && $key = $this->getEncryptKey())
+			{
 				$str = self::decrypt($str, $key);
+			}
 			$this->Buffer = $str;
 		}
 
@@ -2864,7 +3030,9 @@ class CTar
 	function Skip($Block)
 	{
 		if ($Block == 0)
+		{
 			return true;
+		}
 
 		$this->Block += $Block;
 		$toSkip = $Block * 512;
@@ -2879,7 +3047,7 @@ class CTar
 
 		if ($ArchiveSize = $this->getDataSize($file = self::getFirstName($this->file)))
 		{
-			while($NewPos > $ArchiveSize)
+			while ($NewPos > $ArchiveSize)
 			{
 				$file = $this->getNextName($file);
 				$NewPos -= $ArchiveSize;
@@ -2890,11 +3058,15 @@ class CTar
 		{
 			$this->close();
 			if (!$this->open($file, $this->mode))
+			{
 				return false;
+			}
 		}
 
 		if (0 === ($this->gzip ? gzseek($this->res, $NewPos) : fseek($this->res, $NewPos)))
+		{
 			return true;
+		}
 		return $this->Error('File seek error (file: '.$this->file.', position: '.$NewPos.')');
 	}
 
@@ -2906,18 +3078,23 @@ class CTar
 	function readHeader($Long = false)
 	{
 		$str = '';
-		while(trim($str) == '')
+		while (trim($str) == '')
 		{
 			if (!($l = self::strlen($str = $this->readBlock($bIgnoreOpenNextError = true))))
+			{
 				return 0; // finish
+			}
 		}
 
 		if (!$Long)
+		{
 			$this->BlockHeader = $this->Block - 1;
+		}
 
 		if ($l != 512)
+		{
 			return $this->Error('Wrong block size: '.self::strlen($str).' (block '.$this->Block.')');
-
+		}
 
 		$data = unpack("a100filename/a8mode/a8uid/a8gid/a12size/a12mtime/a8checksum/a1type/a100link/a6magic/a2version/a32uname/a32gname/a8devmajor/a8devminor/a155prefix", $str);
 		$chk = $data['devmajor'].$data['devminor'];
@@ -2928,40 +3105,54 @@ class CTar
 		}
 
 		$header['filename'] = trim(trim($data['prefix'], "\x00").'/'.trim($data['filename'], "\x00"),'/');
-		$header['mode'] = OctDec($data['mode']);
-		$header['uid'] = OctDec($data['uid']);
-		$header['gid'] = OctDec($data['gid']);
-		$header['size'] = OctDec($data['size']);
-		$header['mtime'] = OctDec($data['mtime']);
+		$header['mode'] = octdec($data['mode']);
+		$header['uid'] = octdec($data['uid']);
+		$header['gid'] = octdec($data['gid']);
+		$header['size'] = octdec($data['size']);
+		$header['mtime'] = octdec($data['mtime']);
 		$header['type'] = trim($data['type'], "\x00");
-//		$header['link'] = $data['link'];
 
 		if (self::strpos($header['filename'],'./') === 0)
+		{
 			$header['filename'] = self::substr($header['filename'], 2);
+		}
 
 		if ($header['type']=='L') // Long header
 		{
 			$filename = '';
 			$n = ceil($header['size']/512);
 			for ($i = 0; $i < $n; $i++)
+			{
 				$filename .= $this->readBlock();
+			}
 
 			if (!is_array($header = $this->readHeader($Long = true)))
+			{
 				return $this->Error('Wrong long header, block: '.$this->Block);
+			}
+
 			$header['filename'] = self::substr($filename,0,self::strpos($filename,chr(0)));
 		}
 
 		if (self::strpos($header['filename'],'/') === 0) // trailing slash
+		{
 			$header['type'] = 5; // Directory
+		}
 
 		if ($header['type']=='5')
+		{
 			$header['size'] = '';
+		}
 
 		if ($header['filename']=='')
+		{
 			return $this->Error('Filename is empty, wrong block: '.($this->Block-1));
+		}
 
 		if (!$this->checkCRC($str, $data))
+		{
 			return $this->Error('Checksum error on file: '.$header['filename']);
+		}
 
 		$this->header = $header;
 
@@ -2971,8 +3162,7 @@ class CTar
 	function checkCRC($str, $data)
 	{
 		$checksum = $this->checksum($str);
-		$res = octdec($data['checksum']) == $checksum || $data['checksum']===0 && $checksum==256;
-		return $res;
+		return (octdec($data['checksum']) == $checksum) || ($data['checksum'] === 0 && $checksum == 256);
 	}
 
 	function extractFile()
@@ -2980,10 +3170,12 @@ class CTar
 		$rs = false;
 		if ($this->header === null)
 		{
-			if(($header = $this->readHeader()) === false || $header === 0 || $header === true)
+			if (($header = $this->readHeader()) === false || $header === 0 || $header === true)
 			{
 				if ($header === true && $this->SkipFile() === false)
+				{
 					return false;
+				}
 				return $header;
 			}
 
@@ -2993,16 +3185,21 @@ class CTar
 			{
 				if ($header['type']==5) // dir
 				{
-					if(!file_exists($f) && !self::xmkdir($f))
+					if (!file_exists($f) && !self::xmkdir($f))
+					{
 						return $this->ErrorAndSkip('Can\'t create folder: '.$f);
-					//chmod($f, $header['mode']);
+					}
 				}
 				else // file
 				{
 					if (!self::xmkdir($dirname = dirname($f)))
+					{
 						return $this->ErrorAndSkip('Can\'t create folder: '.$dirname);
+					}
 					elseif (($rs = fopen($f, 'wb'))===false)
+					{
 						return $this->ErrorAndSkip(getMsg('ERROR_CANT_WRITE', ['#FILE#' => $f, '#SPACE#' => freeSpace()]));
+					}
 				}
 			}
 			else
@@ -3019,19 +3216,25 @@ class CTar
 			if (!$rs)
 			{
 				if (($rs = fopen($f, 'ab'))===false)
+				{
 					return $this->ErrorAndSkip(getMsg('ERROR_CANT_WRITE', ['#FILE#' => $f, '#SPACE#' => freeSpace()]));
+				}
 			}
 
 			$i = 0;
 			$FileBlockCount = ceil($header['size'] / 512);
-			while(++$this->ReadBlockCurrent <= $FileBlockCount && ($contents = $this->readBlock()))
+			while (++$this->ReadBlockCurrent <= $FileBlockCount && ($contents = $this->readBlock()))
 			{
 				if ($this->ReadBlockCurrent == $FileBlockCount && ($chunk = $header['size'] % 512))
+				{
 					$contents = self::substr($contents, 0, $chunk);
+				}
 
 				$ret = fwrite($rs, $contents);
 				if ($ret === false || $ret === 0)
+				{
 					return $this->Error(getMsg('ERROR_CANT_WRITE', ['#FILE#' => $f, '#SPACE#' => freeSpace()]));
+				}
 
 				if ($this->ReadBlockMax && ++$i >= $this->ReadBlockMax)
 				{
@@ -3042,15 +3245,21 @@ class CTar
 			fclose($rs);
 
 			if (($s = filesize($f)) != $header['size'])
+			{
 				return $this->Error('File size is wrong: '.$header['filename'].' (real: '.$s.'  expected: '.$header['size'].')');
+			}
 
 			//chmod($f, $header['mode']);
 		}
 
 		if ($this->header['type']==5)
+		{
 			$this->DirCount++;
+		}
 		else
+		{
 			$this->FileCount++;
+		}
 
 		$this->debug_header = $this->header;
 		$this->BlockHeader = $this->Block;
@@ -3068,7 +3277,9 @@ class CTar
 			return $this->open($file,$this->mode);
 		}
 		elseif (!$bIgnoreOpenNextError)
+		{
 			return $this->Error("File doesn't exist: ".$file);
+		}
 		return false;
 	}
 
@@ -3077,50 +3288,62 @@ class CTar
 		$file = self::getFirstName($file);
 
 		if (!file_exists($file))
+		{
 			return false;
+		}
 		$f = fopen($file, 'rb');
 		fseek($f, 12);
 		if (fread($f, 2) == 'LN')
+		{
 			$res = end(unpack('va',fread($f, 2)));
+		}
 		else
+		{
 			$res = false;
+		}
 		fclose($f);
 		return $res;
 	}
 
-	# }
-	##############
-
-	##############
-	# BASE
-	# {
 	function open($file, $mode='r')
 	{
 		$this->file = $file;
 		$this->mode = $mode;
 
 		if (is_dir($file))
+		{
 			return $this->Error('File is directory: '.$file);
+		}
 
 		if ($this->EncryptKey && !function_exists('mcrypt_encrypt') && !function_exists('openssl_encrypt'))
+		{
 			return $this->Error('Function mcrypt_encrypt/openssl_encrypt is not available');
+		}
 
 		if ($mode == 'r' && !file_exists($file))
+		{
 			return $this->Error('File does not exist: '.$file);
+		}
 
 		if ($this->gzip)
 		{
-			if(!function_exists('gzopen'))
+			if (!function_exists('gzopen'))
+			{
 				return $this->Error('Function &quot;gzopen&quot; is not available');
+			}
 			else
 			{
 				if ($mode == 'a' && !file_exists($file) && !$this->createEmptyGzipExtra($file))
+				{
 					return false;
+				}
 				$this->res = gzopen($file,$mode."b");
 			}
 		}
 		else
+		{
 			$this->res = fopen($file,$mode."b");
+		}
 
 		return $this->res;
 	}
@@ -3128,7 +3351,9 @@ class CTar
 	function close()
 	{
 		if ($this->mode == 'a')
+		{
 			$this->flushBuffer();
+		}
 
 		if ($this->gzip)
 		{
@@ -3162,7 +3387,9 @@ class CTar
 	public function getNextName($file = '')
 	{
 		if (!$file)
+		{
 			$file = $this->file;
+		}
 
 		static $CACHE;
 		$c = &$CACHE[$file];
@@ -3172,9 +3399,13 @@ class CTar
 			$l = mb_strrpos($file,'.');
 			$num = self::substr($file,$l+1);
 			if (is_numeric($num))
+			{
 				$file = self::substr($file,0,$l+1).++$num;
+			}
 			else
+			{
 				$file .= '.1';
+			}
 			$c = $file;
 		}
 		return $c;
@@ -3184,7 +3415,7 @@ class CTar
 	{
 		$chars = count_chars(self::substr($s,0,148).'        '.self::substr($s,156,356));
 		$sum = 0;
-		foreach($chars as $ch => $cnt)
+		foreach ($chars as $ch => $cnt)
 			$sum += $ch*$cnt;
 		return $sum;
 	}
@@ -3192,31 +3423,39 @@ class CTar
 	public static function substr($s, $a, $b = null)
 	{
 		if (function_exists('mb_orig_substr'))
+		{
 			return $b === null ? mb_orig_substr($s, $a) : mb_orig_substr($s, $a, $b);
+		}
 		return $b === null ? mb_substr($s,$a) : mb_substr($s,$a,$b);
 	}
 
 	public static function strlen($s)
 	{
 		if (function_exists('mb_orig_strlen'))
+		{
 			return mb_orig_strlen($s);
+		}
 		return mb_strlen($s);
 	}
 
 	public static function strpos($s, $a)
 	{
 		if (function_exists('mb_orig_strpos'))
+		{
 			return mb_orig_strpos($s, $a);
+		}
 		return mb_strpos($s,$a);
 	}
 
-	function getDataSize($file)
+	public function getDataSize($file)
 	{
 		$size = &$this->dataSizeCache[$file];
 		if (!$size)
 		{
 			if (!file_exists($file))
+			{
 				$size = false;
+			}
 			else
 			{
 				if (preg_match('#\.gz(\.[0-9]+)?$#',$file))
@@ -3224,36 +3463,44 @@ class CTar
 					$f = fopen($file, "rb");
 					fseek($f, 16);
 					if (fread($f, 2) == 'BX')
-						$size = end(unpack("V", fread($f, 4)));
+					{
+						$a = unpack("V", fread($f, 4));
+						$size = end($a);
+					}
 					else
 					{
-//						$this->Error('Wrong GZIP Extra Field');
 						$size = false;
 					}
 					fclose($f);
 				}
 				else
+				{
 					$size = filesize($file);
+				}
 			}
 		}
 
 		return $size;
 	}
 
-	function Error($str = '', $code = '')
+	protected function Error($str = '', $code = '')
 	{
 		if ($code)
+		{
 			$this->LastErrCode = $code;
+		}
 		$this->err[] = $str;
 		return false;
 	}
 
-	function ErrorAndSkip($str = '', $code = '')
+	protected function ErrorAndSkip($str = '', $code = '')
 	{
 		$this->Error($str, $code);
 		$this->SkipFile();
 		if ($this->readHeader() === 0)
+		{
 			$this->BlockHeader = $this->Block;
+		}
 		return false;
 	}
 
@@ -3263,7 +3510,9 @@ class CTar
 		{
 			$upper_dir = dirname($dir);
 			if (!file_exists($upper_dir) && !self::xmkdir($upper_dir))
-				return $this->Error('Can\'t create folder: '.$upper_dir);
+			{
+				return false;
+			}
 
 			return mkdir($dir);
 		}
@@ -3274,10 +3523,14 @@ class CTar
 	function getEncryptKey()
 	{
 		if (!$this->EncryptKey)
+		{
 			return false;
+		}
 		static $key;
 		if (!$key)
+		{
 			$key = md5($this->EncryptKey);
+		}
 		return $key;
 	}
 
@@ -3286,7 +3539,7 @@ class CTar
 		$f = str_replace('\\', '/', $f);
 		$path = self::substr($f,self::strlen($this->path) + 1);
 
-		$ar = array();
+		$ar = [];
 
 		if (is_dir($f))
 		{
@@ -3294,13 +3547,19 @@ class CTar
 			$path .= '/';
 		}
 		else
+		{
 			$ar['type'] = 0;
+		}
 
 		if (!$info = stat($f))
+		{
 			return $this->Error('Can\'t get file info: '.$f);
+		}
 
 		if ($info['size'] < 0)
+		{
 			return $this->Error('File is too large: '.$f);
+		}
 
 		$ar['mode'] = 0777 & $info['mode'];
 		$ar['uid'] = $info['uid'];
@@ -3324,32 +3583,29 @@ class CTar
 
 	public static function encrypt($data, $md5_key)
 	{
-		if ($m = self::strlen($data)%8)
+		if ($m = self::strlen($data) % 8)
+		{
 			$data .= str_repeat("\x00",  8 - $m);
-		if (function_exists('openssl_encrypt'))
-			return openssl_encrypt($data, 'BF-ECB', $md5_key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
-		else
-			return mcrypt_encrypt(MCRYPT_BLOWFISH, $md5_key, $data, MCRYPT_MODE_ECB);
+		}
+
+		return openssl_encrypt($data, 'BF-ECB', $md5_key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 	}
 
 	public static function decrypt($data, $md5_key)
 	{
-		if (function_exists('openssl_encrypt'))
-			$val = openssl_decrypt($data, 'BF-ECB', $md5_key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
-		else
-			$val = mcrypt_decrypt(MCRYPT_BLOWFISH, $md5_key, $data, MCRYPT_MODE_ECB);
-		return $val;
+		return openssl_decrypt($data, 'BF-ECB', $md5_key, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
 	}
-
-	# }
-	##############
 }
 
 class CTarRestore extends CTar
 {
+	protected $EncCurrent = null;
+	protected $EncRemote = null;
+
 	function readHeader($Long = false)
 	{
 		$header = parent::readHeader($Long);
+
 		if (!$Long && is_array($header))
 		{
 			$dr = str_replace(array('/','\\'),'',$_SERVER['DOCUMENT_ROOT']);
@@ -3366,50 +3622,76 @@ class CTarRestore extends CTar
 			}
 
 			if ($f == $dr.'restore.php')
+			{
 				return true;
-			elseif ($f == $dr.'.htaccess')
+			}
+			elseif ($f == $dr.'.htaccess' || $f == $dr.'.htsecure')
 			{
 				$header['filename'] .= '.restore';
 				$this->header['filename'] = $header['filename'];
 			}
-			elseif ($f == $dr.'bitrixphp_interfacedbconn.php' && file_exists($_SERVER['DOCUMENT_ROOT'].'/bitrix/php_interface/dbconn.php'))
-				$header['filename'] = str_replace('dbconn.php','dbconn.restore.php',$header['filename']);
+			elseif ($f == $dr.'bitrixphp_interfacedbconn.php')
+			{
+				$header['filename'] = str_replace('dbconn.php', 'dbconn.restore.php', $header['filename']);
+			}
+			elseif ($f == $dr.'bitrix.settings.php')
+			{
+				$header['filename'] = str_replace('.settings.php', '.settings.restore.php', $header['filename']);
+			}
 			elseif (preg_match('#[^\x00-\x7f]#', $header['filename'])) // non ASCII character detected
 			{
 				$this->header['filename'] = $header['filename'] = $this->DecodeFileName($header['filename']);
 				if ($this->header['filename'] === false)
+				{
 					return false;
+				}
 			}
 		}
 		return $header;
 	}
 
-	function DecodeFileName($str)
+	protected function DecodeFileName($str)
 	{
 		if (!$this->EncCurrent)
 		{
 			if (PHP_EOL == "\r\n") // win
 			{
 				if (preg_match('#\.([0-9]+)$#', setlocale(LC_CTYPE, 0), $regs))
+				{
 					$this->EncCurrent = 'cp'.$regs[1];
+				}
 				else
+				{
 					$this->EncCurrent = 'cp1251';
+				}
 			}
 			else
+			{
 				$this->EncCurrent = 'utf-8';
+			}
 
 			if (preg_match("/[\xC0-\xDF][\x80-\xBF]{1}|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/", $str)) // 110xxxxx 10xxxxxx | 1110xxxx 10xxxxxx 10xxxxxx | 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+			{
 				$this->EncRemote = 'utf-8';
-			elseif (preg_match("/[\xC0-\xFF]/",$str))
+			}
+			elseif (preg_match("/[\xC0-\xFF]/", $str))
+			{
 				$this->EncRemote = 'cp1251';
+			}
 			else
+			{
 				return $this->Error(getMsg('ERR_CANT_DETECT_ENC').' /'.$str);
+			}
 		}
 
 		if ($this->EncCurrent == $this->EncRemote)
+		{
 			return $str;
+		}
 		if (!function_exists('mb_convert_encoding'))
+		{
 			return $this->Error(getMsg('ERR_CANT_DECODE'));
+		}
 		return mb_convert_encoding($str, $this->EncCurrent, $this->EncRemote);
 	}
 }
@@ -3422,46 +3704,56 @@ function haveTime()
 function img($name)
 {
 	if (file_exists($_SERVER['DOCUMENT_ROOT'].'/images/'.$name))
+	{
 		return '/images/'.$name;
-	if(LANG == 'ru')
+	}
+	if (LANG == 'ru')
+	{
 		return 'https://www.1c-bitrix.ru/images/bitrix_setup/'.$name;
-	else
-		return 'https://www.bitrixsoft.com/images/bitrix_setup/'.$name;
+	}
+	return 'https://www.bitrixsoft.com/images/bitrix_setup/'.$name;
 }
 
 function bx_accelerator_reset()
 {
-	if(function_exists("accelerator_reset"))
+	if (function_exists("accelerator_reset"))
+	{
 		accelerator_reset();
-	elseif(function_exists("wincache_refresh_if_changed"))
-		wincache_refresh_if_changed();
+	}
 }
 
 function DeleteDirRec($path)
 {
 	if (file_exists($path) && $dir = opendir($path))
 	{
-		while(($item = readdir($dir)) !== false)
+		while (($item = readdir($dir)) !== false)
 		{
 			if ($item == '.' || $item == '..')
+			{
 				continue;
+			}
 
 			if (is_file($f = $path.'/'.$item))
 			{
 				if (!bx_unlink($f))
+				{
 					return false;
+				}
 			}
 			else
 			{
 				if (!DeleteDirRec($f))
+				{
 					return false;
+				}
 			}
 		}
 		closedir($dir);
 		if (!rmdir($path))
+		{
 			return false;
+		}
 	}
-	return true;
 	return true;
 }
 
@@ -3470,7 +3762,9 @@ function CheckHtaccessAndWarn()
 	$tmp = $_SERVER['DOCUMENT_ROOT'].'/.htaccess';
 	$tmp1 = $tmp.'.restore';
 	if (!file_exists($tmp1))
+	{
 		return '';
+	}
 
 	if (file_exists($tmp))
 	{
@@ -3480,7 +3774,9 @@ function CheckHtaccessAndWarn()
 			return '';
 		}
 		else
+		{
 			return '<li>'.getMsg('HTACCESS_RENAMED_WARN');
+		}
 	}
 	else
 	{
@@ -3526,15 +3822,19 @@ ErrorDocument 404 /404.php
 function GetHidden($ar)
 {
 	$str = '';
-	foreach($ar as $k)
+	foreach ($ar as $k)
 	{
 		if (isset($_REQUEST[$k]) && is_array($_REQUEST[$k]))
 		{
-			foreach($_REQUEST[$k] as $k0 => $v)
+			foreach ($_REQUEST[$k] as $k0 => $v)
+			{
 				$str .= '<input type=hidden name="'.$k.'['.htmlspecialcharsbx($k0).']" value="'.htmlspecialcharsbx($_REQUEST[$k][$k0]).'">';
+			}
 		}
 		else
+		{
 			$str .= '<input type=hidden name="'.$k.'" value="'.htmlspecialcharsbx($_REQUEST[$k] ?? '').'">';
+		}
 	}
 	return $str;
 }
@@ -3543,7 +3843,7 @@ class CDirScan
 {
 	public $DirCount = 0;
 	public $FileCount = 0;
-	public $err= array();
+	public $err= [];
 	public $bFound = false;
 	public $nextPath = '';
 	public $startPath = '';
@@ -3572,14 +3872,15 @@ class CDirScan
 	{
 		if ($this->startPath)
 		{
-			if (mb_strpos($this->startPath.'/',$f.'/') === 0)
+			if (mb_strpos($this->startPath.'/', $f.'/') === 0)
 			{
 				if ($this->startPath == $f)
-					unset($this->startPath);
+				{
+					$this->startPath = '';
+				}
 				return false;
 			}
-			else
-				return true;
+			return true;
 		}
 		return false;
 	}
@@ -3589,20 +3890,21 @@ class CDirScan
 		$dir = str_replace('\\','/',$dir);
 
 		if ($this->Skip($dir))
+		{
 			return;
+		}
 
 		$this->nextPath = $dir;
 
 		if (is_dir($dir))
 		{
-		#############################
-		# DIR
-		#############################
 			if (!$this->startPath)
 			{
 				$r = $this->ProcessDirBefore($dir);
 				if ($r === false)
+				{
 					return false;
+				}
 			}
 
 			if (!($handle = opendir($dir)))
@@ -3613,8 +3915,10 @@ class CDirScan
 
 			while (($item = readdir($handle)) !== false)
 			{
-				if ($item == '.' || $item == '..' || false !== CTar::strpos($item,'\\'))
+				if ($item == '.' || $item == '..' || CTar::strpos($item,'\\') !== false)
+				{
 					continue;
+				}
 
 				$f = $dir."/".$item;
 				$r = $this->Scan($f);
@@ -3629,20 +3933,23 @@ class CDirScan
 			if (!$this->startPath)
 			{
 				if ($this->ProcessDirAfter($dir) === false)
+				{
 					return false;
+				}
 				$this->DirCount++;
 			}
 		}
 		else
 		{
-		#############################
-		# FILE
-		#############################
 			$r = $this->ProcessFile($dir);
 			if ($r === false)
+			{
 				return false;
+			}
 			elseif ($r === 'BREAK')
+			{
 				return $r;
+			}
 			$this->FileCount++;
 		}
 		return true;
@@ -3656,17 +3963,23 @@ class CDirRealScan extends CDirScan
 	function Scan($dir)
 	{
 		if (!$this->cut)
+		{
 			$this->cut = CTar::strlen($_SERVER['DOCUMENT_ROOT'].'/bitrix/');
+		}
 		return parent::Scan($dir);
 	}
 
 	function ProcessFile($f)
 	{
 		if (!haveTime())
+		{
 			return 'BREAK';
+		}
 		global $a;
 		if (!$a)
-			return;
+		{
+			return null;
+		}
 		$k = CTar::substr($f, $this->cut);
 		if (!isset($a[$k]))
 		{
@@ -3689,7 +4002,7 @@ class CMultiGet
 	static function getConnection($connect_string)
 	{
 		$new_connection = null;
-		foreach(self::$free_connections as $key => $connection)
+		foreach (self::$free_connections as $key => $connection)
 		{
 			if ($connection['connect_string'] == $connect_string)
 			{
@@ -3733,11 +4046,15 @@ class CMultiGet
 	{
 		$u = parse_url($url);
 		if (!isset($u['port']))
+		{
 			$u['port'] = $u['scheme'] == 'https' ? 443 : 80;
+		}
 		$connect_string = ($u['scheme'] == 'https' ? 'ssl://' : 'tcp://').$u['host'].':'.$u['port'];
 
 		if (!$connection = self::getConnection($connect_string))
+		{
 			return false;
+		}
 
 		$connection['state'] = 0;
 		$connection['url'] = $url;
@@ -3748,7 +4065,9 @@ class CMultiGet
 			'Connection: keep-alive'."\r\n".
 			'Host: '.$u['host']."\r\n";
 		if (file_exists($file))
+		{
 			$strReq .= 'Range: bytes='.filesize($file).'-'."\r\n";
+		}
 		$strReq .= "\r\n";
 
 		if (!fwrite($connection['socket'], $strReq))
@@ -3759,20 +4078,26 @@ class CMultiGet
 
 		self::$connections[] = $connection;
 		end(self::$connections);
+
 		debug('Connection #'.key(self::$connections).' request'."\n".$strReq);
+
 		return true;
 	}
 
 	static function getPart()
 	{
 		if (!count(self::$connections))
+		{
 			return true;
+		}
 
 		$arReadSock = [];
-		foreach(self::$connections as $key => $connection)
+		foreach (self::$connections as $key => $connection)
 		{
 			if (self::isAlive($connection['socket']))
+			{
 				$arReadSock[] = $connection['socket'];
+			}
 		}
 
 		$w = null;
@@ -3780,24 +4105,32 @@ class CMultiGet
 
 		$n = stream_select($arReadSock, $w, $e, 1);
 		if ($n === 0)
+		{
 			return true;
+		}
 
-		foreach($arReadSock as $sock)
+		foreach ($arReadSock as $sock)
 		{
 			$key = null;
-			foreach(self::$connections as $key => $connection)
+			foreach (self::$connections as $key => $connection)
+			{
 				if ($connection['socket'] == $sock)
+				{
 					break;
+				}
+			}
 			self::$current = $key;
 
 			$file = self::$connections[$key]['file'];
-			$state =& self::$connections[$key]['state'];
+			$state = &self::$connections[$key]['state'];
 			$header = '';
 
 			if ($state == 0) // начало загрузки, читаем заголовки
 			{
-				if (false === $line = fgets($sock))
+				if (($line = fgets($sock)) === false)
+				{
 					continue;
+				}
 
 				if (!preg_match('#^HTTP/1.. ([0-9]+)#', trim($line), $regs))
 				{
@@ -3808,11 +4141,7 @@ class CMultiGet
 				$header .= $line;
 				$state = $regs[1];
 
-				if ($state == 416) // Requested Range Not Satisfiable
-				{
-					// файл загружен, ничего не делаем
-				}
-				elseif (!preg_match('#^2\d{2}$#', $state))
+				if ($state != 416 && !preg_match('#^2\d{2}$#', $state))
 				{
 					self::$error = 'Wrong reply code: '.trim($line)."\n".'File: '.$file;
 					return false;
@@ -3826,7 +4155,9 @@ class CMultiGet
 						self::$connections[$key]['length'] = $regs[1];
 					}
 					$header .= $line;
-				} while ($line != "\r\n");
+				}
+				while ($line != "\r\n");
+
 				debug('Connection #'.$key.' response'."\n".$header);
 			}
 
@@ -3839,7 +4170,9 @@ class CMultiGet
 				$str = fread($sock, 1024 * 1024);
 				$dir = dirname($file);
 				if (!file_exists($dir))
+				{
 					mkdir($dir, 0777, true);
+				}
 				$bytes = file_put_contents($file, $str, 8);
 				if ($bytes === false)
 				{
@@ -3881,7 +4214,9 @@ class CMultiGet
 	{
 		$sock = self::$connections[$key]['socket'];
 		if (self::isAlive($sock))
+		{
 			fclose($sock);
+		}
 		unset(self::$connections[$key]);
 	}
 }
@@ -3889,18 +4224,26 @@ class CMultiGet
 function bx_unlink($file)
 {
 	if (!file_exists($file))
+	{
 		return true;
+	}
 	if (DEBUG)
+	{
 		return rename($file, $file.'.debug');
+	}
 	return unlink($file);
 }
 
 function debug($str)
 {
 	if (!DEBUG)
+	{
 		return;
+	}
 	if (is_array($str))
+	{
 		$str = print_r($str, 1);
+	}
 	file_put_contents($_SERVER['DOCUMENT_ROOT'].'/log.txt', date('[Y-m-d H:i:s]	').$str."\n", 8);
 }
 
@@ -3908,7 +4251,9 @@ function freeSpace()
 {
 	$d = disk_free_space(__FILE__);
 	if ($d === false)
+	{
 		return 'N/A';
+	}
 	return HumanSize($d);
 }
 
@@ -3916,36 +4261,10 @@ function HumanSize($s)
 {
 	$i = 0;
 	$ar = array('b','kb','Mb','Gb');
-	while($s > 1024)
+	while ($s > 1024)
 	{
 		$s /= 1024;
 		$i++;
 	}
 	return round($s,2).''.$ar[$i];
 }
-function version_compare_bx($a, $b)
-{
-	$a = trim($a);
-	$b = trim($b);
-
-	if ($a == $b)
-		return 0;
-
-	$arA = explode(".", $a);
-	$arB = explode(".", $b);
-
-	if (intval($arA[0]) > intval($arB[0])
-		|| intval($arA[0]) == intval($arB[0]) && intval($arA[1]) > intval($arB[1])
-		|| intval($arA[0]) == intval($arB[0]) && intval($arA[1]) == intval($arB[1]) && intval($arA[2]) > intval($arB[2]))
-	{
-		return 1;
-	}
-
-	if (intval($arA[0]) == intval($arB[0]) && intval($arA[1]) == intval($arB[1]) && intval($arA[2])==intval($arB[2]))
-	{
-		return 0;
-	}
-
-	return -1;
-}
-                  

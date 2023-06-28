@@ -1,0 +1,26 @@
+{
+    "cSpell.enableFiletypes": [
+        "makefile"
+    ],
+    "git.ignoreLimitWarning": true,
+
+    "files.watcherExclude": {
+        "/backup/": true,
+        "/www/bitrix/*": true,
+        "/www/*": true,
+        "/www/": true,
+        "**/www/**": true,
+        "/www/bitrix1/*": true,
+        "/www/upload/*": true,
+        "/www/storage/*": true,
+        "/www/upload_origin/*": true,
+        "/backup/": true,
+        "**/backup/**": true,
+        "**/www/bitrix/**": true,
+        "**/www/bitrix1/**": true,
+        "**/www/upload/**": true,
+        "**/www/storage/**": true,
+        "**/backup/**": true,
+        "**/www/upload_origin/**": true,
+    }
+}
