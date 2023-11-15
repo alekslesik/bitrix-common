@@ -41,33 +41,33 @@ services:
     networks:
       - bitrix-net
 
-#   memcached:
-#     build:
-#       context: ./docker/memcached
-#       dockerfile: Dockerfile
-#     image: bitrix-${PROJECT_NAME}-memcached
-#     container_name: bitrix-${PROJECT_NAME}-memcached
-#     restart: "always"
-#     volumes:
-#       - ./storage/memcached:/var/lib/memcached
-#     ports:
-#       - "11211"
-#     depends_on:
-#       - php-apache
-#     networks:
-#       - bitrix-net
+  memcached:
+    build:
+      context: ./docker/memcached
+      dockerfile: Dockerfile
+    image: bitrix-${PROJECT_NAME}-memcached
+    container_name: bitrix-${PROJECT_NAME}-memcached
+    restart: "always"
+    volumes:
+      - ./storage/memcached:/var/lib/memcached
+    ports:
+      - "11211"
+    depends_on:
+      - php-apache
+    networks:
+      - bitrix-net
 
-#   redis:
-#     build:
-#       context: ./docker/redis
-#       dockerfile: Dockerfile
-#     image: bitrix-${PROJECT_NAME}-redis
-#     container_name: bitrix-${PROJECT_NAME}-redis
-#     restart: "always"
-#     volumes:
-#       - ./storage/redis:/data
-#     networks:
-#       - bitrix-net
+  redis:
+    build:
+      context: ./docker/redis
+      dockerfile: Dockerfile
+    image: bitrix-${PROJECT_NAME}-redis
+    container_name: bitrix-${PROJECT_NAME}-redis
+    restart: "always"
+    volumes:
+      - ./storage/redis:/data
+    networks:
+      - bitrix-net
 
 networks:
   bitrix-net:
