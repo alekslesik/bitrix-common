@@ -1,7 +1,10 @@
+<?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 
+/**
+ * @global $APPLICATION
+ */
 
-<h4><a href="https://github.com/alekslesik/bitrix-docker" style="font-family: Verdana,Arial, Helvetica, sans-serif; color:crimson">https://github.com/alekslesik/bitrix-docker</a></h4>
+$APPLICATION->SetTitle("Universe");
 
-
-<?php include "./bitrix_server_test.php"  ?>
-
+?>
+<?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php") ?>

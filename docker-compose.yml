@@ -9,9 +9,9 @@ services:
     container_name: bitrix-${PROJECT_NAME}-mysql
     restart: "always"
     # volumes:
-      # - ./settings/mysql/my.cnf:/etc/my.cnf
-      # - ./docker/logs/mysql/:/var/log/
-      # - ./storage/mysql:/var/lib/mysql
+    #   - ./settings/mysql/my.cnf:/etc/my.cnf
+    #   - ./docker/logs/mysql/:/var/log/
+    #   - ./storage/mysql:/var/lib/mysql
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -30,44 +30,44 @@ services:
     image: bitrix-${PROJECT_NAME}-php-apache
     container_name: bitrix-${PROJECT_NAME}-php-apache
     restart: "always"
-    # depends_on: 
+    # depends_on:
     #   - mysql
     volumes:
       - ./www/:/var/www/html
-      - ./settings/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      # - ./settings/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
       - ./settings/php/:/usr/local/etc/php/conf.d/
     ports:
-      - "80:80"
+      - "8080:80"
     networks:
       - bitrix-net
 
-  memcached:
-    build:
-      context: ./docker/memcached
-      dockerfile: Dockerfile
-    image: bitrix-${PROJECT_NAME}-memcached
-    container_name: bitrix-${PROJECT_NAME}-memcached
-    restart: "always"
-    volumes:
-      - ./storage/memcached:/var/lib/memcached
-    ports:
-      - "11211"
-    depends_on:
-      - php-apache
-    networks:
-      - bitrix-net
+#   memcached:
+#     build:
+#       context: ./docker/memcached
+#       dockerfile: Dockerfile
+#     image: bitrix-${PROJECT_NAME}-memcached
+#     container_name: bitrix-${PROJECT_NAME}-memcached
+#     restart: "always"
+#     volumes:
+#       - ./storage/memcached:/var/lib/memcached
+#     ports:
+#       - "11211"
+#     depends_on:
+#       - php-apache
+#     networks:
+#       - bitrix-net
 
-  redis:
-    build:
-      context: ./docker/redis
-      dockerfile: Dockerfile
-    image: bitrix-${PROJECT_NAME}-redis
-    container_name: bitrix-${PROJECT_NAME}-redis
-    restart: "always"
-    volumes:
-      - ./storage/redis:/data
-    networks:
-      - bitrix-net
+#   redis:
+#     build:
+#       context: ./docker/redis
+#       dockerfile: Dockerfile
+#     image: bitrix-${PROJECT_NAME}-redis
+#     container_name: bitrix-${PROJECT_NAME}-redis
+#     restart: "always"
+#     volumes:
+#       - ./storage/redis:/data
+#     networks:
+#       - bitrix-net
 
 networks:
   bitrix-net:

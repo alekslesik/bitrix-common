@@ -1,5 +1,5 @@
 # Include variables from the .envrc file
-# include .env
+include .env
 
 #=====================================#
 # HELPERS #
@@ -27,7 +27,7 @@ confirm:
 ## docker-up: Build images before starting containers; Create and start containers
 .PHONY: docker-up
 docker-up:
-	docker-compose up --build -d
+	docker compose up --build -d
 
 ## docker-rebuild: Stop, rebuild and start containers
 .PHONY: docker-rebuild
@@ -51,7 +51,7 @@ docker-stop:
 	docker compose stop
 
 ## docker-prune: Delete all stopped containers, images and networks
-.PHONY: docker-Ðprune
+.PHONY: docker-prune
 docker-prune:
 	docker system prune
 
@@ -63,7 +63,7 @@ mysql-up:
 ## mysql-exec: Start bin/sh in bitrix-mysql
 .PHONY: mysql-exec
 mysql-exec:
-	docker container exec -it bitrix-mysql sh
+	docker container exec -it bitrix-${PROJECT_NAME}-mysql sh
 
 ## php-up: Build php-apache image before starting containers; Create and start containers
 .PHONY: php-up
@@ -73,7 +73,7 @@ php-up:
 ## php-exec: Start bin/sh in php-docker
 .PHONY: php-exec
 php-exec:
-	docker container exec -it php-apache sh
+	docker container exec -it bitrix-${PROJECT_NAME}-php-apache sh
 
 # bitrix-setup:
 # 	docker container exec bitrix-${PROJECT_NAME}-php-apache wget http://www.1c-bitrix.ru/download/scripts/bitrixsetup.php -O bitrixsetup.php
