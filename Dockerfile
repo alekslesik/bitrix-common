@@ -2,14 +2,14 @@ FROM php:8.2-apache
 
 COPY www/ /var/www/html/
 
-# RUN apt-get update
+RUN apt-get update
 
-# RUN docker-php-ext-install mysqli pdo pdo_mysql
+RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-# RUN chmod +x /usr/local/bin/install-php-extensions && \
-#     install-php-extensions gd xdebug opcache pdo pdo_mysql mysqli && rm -f /var/lib/apt/lists/*
+RUN chmod +x /usr/local/bin/install-php-extensions && \
+    install-php-extensions gd xdebug opcache pdo pdo_mysql mysqli && rm -f /var/lib/apt/lists/*
 
 
 # RUN apt-get install -y \
@@ -26,9 +26,6 @@ COPY www/ /var/www/html/
 # RUN apt-get install -y libmemcached-dev libssl-dev zlib1g-dev \
 # 	&& pecl install memcached-3.2.0 \
 # 	&& docker-php-ext-enable memcached
-
-
-
 
 
 RUN chmod 777 -R /var
