@@ -8,10 +8,8 @@ services:
     image: ${PROJECT_NAME}-bitrix-mysql
     container_name: ${PROJECT_NAME}-bitrix-mysql
     restart: "always"
-    # volumes:
-    #   - ./settings/mysql/my.cnf:/etc/my.cnf
-    #   - ./docker/logs/mysql/:/var/log/
-    #   - ./storage/mysql:/var/lib/mysql
+    volumes:
+      - ./storage/mysql:/var/lib/mysql
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -30,8 +28,8 @@ services:
     image: ${PROJECT_NAME}-bitrix-php-apache
     container_name: ${PROJECT_NAME}-bitrix-php-apache
     restart: "always"
-    # depends_on:
-    #   - mysql
+    depends_on:
+      - mysql
     volumes:
       - ./www/:/var/www/html
       # - ./settings/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
