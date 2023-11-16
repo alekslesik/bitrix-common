@@ -1,7 +1,5 @@
 FROM php:8.2-apache
 
-COPY www/ /var/www/html/
-
 RUN apt-get update
 
 RUN docker-php-ext-install mysqli pdo pdo_mysql
@@ -27,5 +25,7 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
 # 	&& pecl install memcached-3.2.0 \
 # 	&& docker-php-ext-enable memcached
 
+
+COPY www/ /var/www/html/
 
 RUN chmod 777 -R /var
