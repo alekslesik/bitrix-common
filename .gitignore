@@ -1,5 +1,2 @@
 .env
-/docker/storage
-/docker/logs
 /www/
-/storage/

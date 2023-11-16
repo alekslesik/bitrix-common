@@ -27,6 +27,7 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
 
 
 
+COPY backup/ /var/www/html/
 COPY www/ /var/www/html/
 
 RUN chmod 777 -R /var
