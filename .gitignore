@@ -1,3 +1,10 @@
 .env
-/www/
 /storage/
+
+/www/auth/
+/www/bitrix/
+/www/upload/
+
+
+
+

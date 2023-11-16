@@ -64,6 +64,8 @@ services:
     restart: "always"
     volumes:
       - ./storage/redis:/data
+    depends_on:
+      - php-apache
     networks:
       - bitrix-net
 

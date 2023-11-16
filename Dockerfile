@@ -1,13 +1,15 @@
 FROM php:8.2-apache
 
-RUN apt-get update
+COPY www/ /var/www/html/
 
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# RUN apt-get update
 
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+# RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-RUN chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions gd xdebug opcache pdo pdo_mysql mysqli && rm -f /var/lib/apt/lists/*
+# ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+# RUN chmod +x /usr/local/bin/install-php-extensions && \
+#     install-php-extensions gd xdebug opcache pdo pdo_mysql mysqli && rm -f /var/lib/apt/lists/*
 
 
 # RUN apt-get install -y \
@@ -27,7 +29,6 @@ RUN chmod +x /usr/local/bin/install-php-extensions && \
 
 
 
-COPY backup/ /var/www/html/
-COPY www/ /var/www/html/
+
 
 RUN chmod 777 -R /var
