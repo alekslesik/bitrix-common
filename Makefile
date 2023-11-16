@@ -28,6 +28,7 @@ confirm:
 .PHONY: docker-up
 docker-up:
 	docker compose up --build -d
+	chmod -R 777 www/
 
 ## docker-rebuild: Stop, rebuild and start containers
 .PHONY: docker-rebuild
