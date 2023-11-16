@@ -1,4 +1,7 @@
 .env
+/storage/memcached/*
+/storage/mysql/*
+/storage/redis/*
 
 
 /www/
