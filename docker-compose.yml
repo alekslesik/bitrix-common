@@ -5,8 +5,8 @@ services:
     build:
       context: ./docker/mysql
       dockerfile: Dockerfile
-    image: bitrix-${PROJECT_NAME}-mysql
-    container_name: bitrix-${PROJECT_NAME}-mysql
+    image: ${PROJECT_NAME}-bitrix-mysql
+    container_name: ${PROJECT_NAME}-bitrix-mysql
     restart: "always"
     # volumes:
     #   - ./settings/mysql/my.cnf:/etc/my.cnf
@@ -27,8 +27,8 @@ services:
       context: .
       dockerfile: Dockerfile
     working_dir: /var/www/html
-    image: bitrix-${PROJECT_NAME}-php-apache
-    container_name: bitrix-${PROJECT_NAME}-php-apache
+    image: ${PROJECT_NAME}-bitrix-php-apache
+    container_name: ${PROJECT_NAME}-bitrix-php-apache
     restart: "always"
     # depends_on:
     #   - mysql
@@ -45,8 +45,8 @@ services:
     build:
       context: ./docker/memcached
       dockerfile: Dockerfile
-    image: bitrix-${PROJECT_NAME}-memcached
-    container_name: bitrix-${PROJECT_NAME}-memcached
+    image: ${PROJECT_NAME}-bitrix-memcached
+    container_name: ${PROJECT_NAME}-bitrix-memcached
     restart: "always"
     volumes:
       - ./storage/memcached:/var/lib/memcached
@@ -61,8 +61,8 @@ services:
     build:
       context: ./docker/redis
       dockerfile: Dockerfile
-    image: bitrix-${PROJECT_NAME}-redis
-    container_name: bitrix-${PROJECT_NAME}-redis
+    image: ${PROJECT_NAME}-bitrix-redis
+    container_name: ${PROJECT_NAME}-bitrix-redis
     restart: "always"
     volumes:
       - ./storage/redis:/data
