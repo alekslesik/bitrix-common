@@ -1,5 +1,7 @@
 .env
-/storage/
+/storage/mysql/*
+/storage/memcached/*
+/storage/redis/*
 
 /www/
 /www/auth/
